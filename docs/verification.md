@@ -47,6 +47,19 @@ Raw run evidence is ignored under `test-results/`. CI recreates proofs and deplo
 only `index.html`. SFHS mobile-control runtime provenance is verified; this product
 uses its own small esbuild packer, not an asserted SFHS certification pipeline.
 
+## Published artifact check
+
+On 2026-09-08, the initial verification/deploy workflow for game commit
+`06a57bae6f79a8922e160f98ab9c8da27421f494` passed every build/test/deploy step.
+The live [Pages game](https://falloutmule.github.io/karambe-village-water-run/)
+returned HTTP 200 and exactly matched root `index.html`: 143,460 bytes,
+SHA-256 `d691b298e2bfa561bcf8d865c49d13ae87c04d2827f4162929c5262c1599c642`.
+`node tools/verify-pages.mjs` reproduced the byte comparison, read-only selfcheck,
+fresh-install Level Select lock, public dev-flag rejection, native CDP movement
+plus CAN/cancel, and pause UI. No console errors, failed requests, or unexpected
+runtime requests were observed. Subsequent documentation commits retain these
+same game bytes; current deployment commit identity is available in Actions.
+
 ## Limits and acceptance
 
 Local Chromium engineering PASS does not establish physical phone feel, touch

@@ -1,5 +1,7 @@
 # Karambe Village Water Run
 
+**[Play on Android Chrome](https://falloutmule.github.io/karambe-village-water-run/)**
+
 A portrait arcade speedrun: carry an empty jerry can down the mountain, fill it,
 then bring the heavy can home by the long route. Deliver three cans per level.
 Rocks join in Level 2; snakes join in Level 3. Hits cost the current attempt and
