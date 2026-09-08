@@ -1,0 +1,19 @@
+{
+  "name": "karambe-village-water-run",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "build:check": "node tools/build.mjs --check",
+    "test": "node tests/game.mjs",
+    "test:controls": "node tests/controls.mjs",
+    "test:release": "node tests/release.mjs",
+    "test:routes": "node tests/hazard-route.mjs",
+    "test:all": "npm run build:check && npm test && npm run test:controls && npm run test:release && npm run test:routes"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.9",
+    "playwright": "1.63.0"
+  }
+}

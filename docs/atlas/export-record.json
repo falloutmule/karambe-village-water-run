@@ -1,0 +1,20 @@
+{
+  "producer": "Installed Atlas-pinned Archify 2.16.0",
+  "status": "Repository diagram export; not an accepted Atlas workspace artifact",
+  "records": [
+    {
+      "view": "gameplay",
+      "nativeSha256": "52a9fc16ba8988d38d6592f74bd7a98d7bd37900d7224e6b2d9df070eedaccad",
+      "offlineSha256": "811b19433c8de3b12b81fb8b7c6653ca1ac70ed4e4b224b876bc900763876719",
+      "output": "docs/atlas/gameplay.html",
+      "adaptation": "Removed only three optional Google font/preconnect link elements; stock system-monospace fallback remains."
+    },
+    {
+      "view": "runtime",
+      "nativeSha256": "19e70948ebea7a04740785828737db7c4a354ca20de40b4a54dad5a8c209e550",
+      "offlineSha256": "6b56b53424570410c4a6668b637a48c29a3f03cc7fa7182733627318e631fdbf",
+      "output": "docs/atlas/runtime.html",
+      "adaptation": "Removed only three optional Google font/preconnect link elements; stock system-monospace fallback remains."
+    }
+  ]
+}

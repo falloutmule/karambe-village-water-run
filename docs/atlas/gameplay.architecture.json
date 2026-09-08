@@ -1,0 +1,283 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Karambe Village Water Run — gameplay",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "trip",
+        "label": "One can attempt",
+        "focus": [
+          "player",
+          "empty",
+          "fill",
+          "full",
+          "delivery"
+        ],
+        "note": "Empty descent, water fill, heavy return and village delivery."
+      },
+      {
+        "id": "checkpoint",
+        "label": "Time and progress",
+        "focus": [
+          "delivery",
+          "bank",
+          "progression",
+          "sun",
+          "clock"
+        ],
+        "note": "Three deliveries complete a level. Retry preserves banked cans and elapsed time."
+      },
+      {
+        "id": "failure",
+        "label": "Fair retry",
+        "focus": [
+          "hazards",
+          "retry",
+          "clock",
+          "sun"
+        ],
+        "note": "Only the current can and deterministic hazard state restart."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "player",
+      "type": "frontend",
+      "label": "Player + controls",
+      "sublabel": "Movement / CAN / JUMP",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "empty",
+      "type": "backend",
+      "label": "Empty-can descent",
+      "sublabel": "Jump; unstable shortcut",
+      "pos": [
+        350,
+        40
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "fill",
+      "type": "backend",
+      "label": "Water fill",
+      "sublabel": "Hold CAN at water",
+      "pos": [
+        660,
+        40
+      ],
+      "size": [
+        180,
+        72
+      ]
+    },
+    {
+      "id": "full",
+      "type": "backend",
+      "label": "Full-can return",
+      "sublabel": "Long route; no held jump",
+      "pos": [
+        970,
+        40
+      ],
+      "size": [
+        190,
+        72
+      ]
+    },
+    {
+      "id": "delivery",
+      "type": "backend",
+      "label": "Village delivery",
+      "sublabel": "Hold CAN; record split",
+      "pos": [
+        970,
+        240
+      ],
+      "size": [
+        190,
+        72
+      ]
+    },
+    {
+      "id": "bank",
+      "type": "database",
+      "label": "Three-can bank",
+      "sublabel": "Delivered cans survive hits",
+      "pos": [
+        660,
+        240
+      ],
+      "size": [
+        195,
+        72
+      ]
+    },
+    {
+      "id": "progression",
+      "type": "backend",
+      "label": "Level progression",
+      "sublabel": "L1 → L2 → L3; then unlock",
+      "pos": [
+        350,
+        240
+      ],
+      "size": [
+        205,
+        72
+      ]
+    },
+    {
+      "id": "sun",
+      "type": "frontend",
+      "label": "Progress sun",
+      "sublabel": "Bank + current trip / 3",
+      "pos": [
+        660,
+        450
+      ],
+      "size": [
+        195,
+        72
+      ]
+    },
+    {
+      "id": "clock",
+      "type": "database",
+      "label": "Level stopwatch",
+      "sublabel": "Runs until third delivery",
+      "pos": [
+        970,
+        450
+      ],
+      "size": [
+        190,
+        72
+      ]
+    },
+    {
+      "id": "hazards",
+      "type": "backend",
+      "label": "Attempt hazards",
+      "sublabel": "Rocks / snakes / walkway",
+      "pos": [
+        40,
+        240
+      ],
+      "size": [
+        195,
+        72
+      ]
+    },
+    {
+      "id": "retry",
+      "type": "backend",
+      "label": "Current-can retry",
+      "sublabel": "Village + fresh empty can",
+      "pos": [
+        40,
+        450
+      ],
+      "size": [
+        205,
+        72
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "player",
+      "to": "empty",
+      "label": "carry"
+    },
+    {
+      "from": "empty",
+      "to": "fill",
+      "label": "reach water"
+    },
+    {
+      "from": "fill",
+      "to": "full",
+      "label": "can full"
+    },
+    {
+      "from": "full",
+      "to": "delivery",
+      "label": "reach village",
+      "labelDy": 55
+    },
+    {
+      "from": "delivery",
+      "to": "bank",
+      "label": "+1 can"
+    },
+    {
+      "from": "bank",
+      "to": "progression",
+      "label": "third can"
+    },
+    {
+      "from": "bank",
+      "to": "sun",
+      "label": "banked progress",
+      "labelDy": 55
+    },
+    {
+      "from": "delivery",
+      "to": "clock",
+      "label": "third can stops",
+      "labelDy": 55
+    },
+    {
+      "from": "hazards",
+      "to": "retry",
+      "label": "hit / fall",
+      "labelDy": 55,
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Carry and route rules",
+      "items": [
+        "A full can prevents jumping and the unstable shortcut.",
+        "Place it in front, jump empty-handed, then retrieve it.",
+        "Route / connector identity gates collision; screen overlap alone is insufficient."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Hazards by level",
+      "items": [
+        "L1: route only. L2: deterministic chimp rocks. L3: rocks + respawning snakes.",
+        "Full can blocks rocks and crushes snakes; empty-can jump can stomp snakes.",
+        "Walkway warns, collapses and respawns; a fall retries the current can."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Retry and persistence",
+      "items": [
+        "Retry clears contacts, resets hazards and trip progress; time and bank stay.",
+        "Sun rolls back only within the unfinished can segment.",
+        "Completing the sequential full run permanently unlocks Level Select."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,3706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#173824">
+<link rel="icon" href="data:,">
+<title>Karambe Village Water Run</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --ink: #fff9df;
+    --deep: #14251c;
+    --panel: rgba(18, 36, 27, .96);
+    --line: rgba(255,255,255,.18);
+    --button-top: #345c3d;
+    --button-bottom: #1d3927;
+    --button-press: #102a1b;
+    --yellow: #f0c530;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #173824; }
+  body {
+    font-family: ui-rounded, "Arial Rounded MT Bold", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--ink);
+    overscroll-behavior: none;
+    touch-action: none;
+    user-select: none;
+  }
+  button { font: inherit; }
+  #app {
+    padding-top: env(safe-area-inset-top, 0px);
+    width: 100%;
+    height: 100dvh;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #173824;
+  }
+  #stage {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+    background: #5db9da;
+  }
+  #game {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+  #controls {
+    flex: 0 0 clamp(82px, 11.5dvh, 108px);
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.08fr 1.08fr;
+    gap: clamp(5px, 1.4vw, 9px);
+    padding: 7px max(8px, env(safe-area-inset-right)) 7px max(8px, env(safe-area-inset-left));
+    background: #142a1d;
+    border-top: 1px solid rgba(255,255,255,.13);
+    box-shadow: 0 -5px 20px rgba(0,0,0,.22);
+  }
+  .control {
+    position: relative;
+    min-width: 0;
+    border: 1px solid rgba(255,255,255,.17);
+    border-bottom-color: rgba(0,0,0,.48);
+    border-radius: 17px;
+    color: #fffbe5;
+    background: linear-gradient(var(--button-top), var(--button-bottom));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 4px 0 #0a1e12;
+    font-weight: 900;
+    font-size: clamp(16px, 4.5vw, 23px);
+    letter-spacing: .02em;
+    text-shadow: 0 2px 0 rgba(0,0,0,.5);
+    touch-action: none;
+  }
+  .control .small {
+    display: block;
+    margin-top: 3px;
+    font-size: clamp(8px, 2.3vw, 11px);
+    letter-spacing: .09em;
+    opacity: .83;
+  }
+  .control[data-control-active="true"] {
+    transform: translateY(3px);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,.45), 0 1px 0 #0a1e12;
+    background: var(--button-press);
+  }
+  #canBtn { background: linear-gradient(#9a7a16, #5d480d); }
+  #jumpBtn { background: linear-gradient(#7a4331, #472318); }
+  #footer {
+    flex: 0 0 auto;
+    min-height: calc(46px + env(safe-area-inset-bottom, 0px));
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(48px, 14%) 1fr minmax(70px, 19%);
+    align-items: center;
+    padding: 0 5px env(safe-area-inset-bottom, 0px);
+    background: #0b1e13;
+    border-top: 1px solid rgba(255,255,255,.12);
+  }
+  #menuBtn {
+    align-self: stretch;
+    border: 0;
+    background: transparent;
+    color: white;
+    font-size: 25px;
+    font-weight: 900;
+    touch-action: manipulation;
+  }
+  #footerTitle {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    text-align: center;
+    font-size: clamp(10px, 3.15vw, 15px);
+    font-weight: 950;
+    letter-spacing: .055em;
+    color: #ffefb0;
+    text-shadow: 0 2px 0 #000;
+  }
+  #score {
+    text-align: right;
+    padding-right: 8px;
+    font-size: clamp(12px, 3.8vw, 18px);
+    font-weight: 950;
+    color: #ffd94e;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 2px 0 #000;
+  }
+  #overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+    background: rgba(5, 17, 10, .56);
+    backdrop-filter: blur(5px);
+  }
+  #overlay.open { display: flex; }
+  .panel {
+    width: min(92vw, 430px);
+    max-height: 90dvh;
+    overflow: auto;
+    touch-action: pan-y;
+    padding: 16px 16px 14px;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 23px;
+    background: var(--panel);
+    box-shadow: 0 20px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.1);
+    text-align: center;
+  }
+  .panel h1 {
+    margin: 0 0 7px;
+    color: #ffe47a;
+    font-size: clamp(27px, 8vw, 42px);
+    line-height: .98;
+    letter-spacing: -.03em;
+    text-shadow: 0 3px 0 rgba(0,0,0,.55);
+  }
+  .panel h2 {
+    margin: 0 0 11px;
+    color: #fff4ca;
+    font-size: clamp(17px, 5vw, 24px);
+  }
+  .panel p { margin: 8px auto 14px; max-width: 34em; line-height: 1.35; color: #e6efd9; }
+  .rules {
+    display: grid;
+    gap: 5px;
+    margin: 10px 0;
+    text-align: left;
+    font-size: clamp(13px, 3.6vw, 16px);
+  }
+  .rule {
+    padding: 7px 9px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 12px;
+    background: rgba(255,255,255,.055);
+  }
+  .rule b { color: #ffd94e; }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 7px 15px;
+    margin: 15px 0 18px;
+    padding: 13px 14px;
+    border-radius: 14px;
+    background: rgba(0,0,0,.2);
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+  }
+  .stats strong { color: #ffd94e; text-align: right; }
+  .action {
+    width: 100%;
+    min-height: 52px;
+    margin-top: 8px;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 15px;
+    color: #fffbea;
+    background: linear-gradient(#4b7c4f, #24482c);
+    box-shadow: 0 4px 0 #102518;
+    font-weight: 950;
+    font-size: 17px;
+    letter-spacing: .035em;
+  }
+  .action.secondary { background: linear-gradient(#4a5150, #282e2d); box-shadow: 0 4px 0 #111; }
+  .action.tertiary { background: transparent; box-shadow: none; border-color: rgba(255,255,255,.16); color: #dbe7d7; }
+  .level-select {
+    margin: 12px 0 4px;
+    padding: 10px;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 14px;
+    background: rgba(0,0,0,.16);
+  }
+  .level-select-title {
+    margin-bottom: 8px;
+    color: #ffe47a;
+    font-size: 12px;
+    font-weight: 950;
+    letter-spacing: .09em;
+  }
+  .level-select-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .level-pick {
+    min-width: 0;
+    min-height: 58px;
+    padding: 7px 4px;
+    border: 1px solid rgba(255,255,255,.17);
+    border-radius: 11px;
+    color: #fffbea;
+    background: linear-gradient(#3b6542, #203c28);
+    box-shadow: 0 3px 0 #0d2114;
+    font-weight: 950;
+    line-height: 1.05;
+    touch-action: manipulation;
+  }
+  .level-pick strong { display: block; font-size: 13px; }
+  .level-pick span { display: block; margin-top: 5px; color: #ffd94e; font-size: 10px; font-variant-numeric: tabular-nums; }
+  .level-pick:active { transform: translateY(2px); box-shadow: 0 1px 0 #0d2114; }
+  .action:active { transform: translateY(3px); box-shadow: 0 1px 0 #102518; }
+  .hidden { display: none !important; }
+  #rotateNote {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    place-items: center;
+    padding: 24px;
+    background: #10261a;
+    color: white;
+    text-align: center;
+    font-weight: 800;
+  }
+  @media (orientation: landscape) and (max-height: 520px) {
+    #rotateNote { display: grid; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #overlay { backdrop-filter: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage"><canvas id="game" aria-label="Karambe Village Water Run game screen"></canvas></div>
+  <div id="controls" aria-label="Game controls">
+    <button class="control" id="leftBtn" aria-label="Move left">◀<span class="small">LEFT</span></button>
+    <button class="control" id="rightBtn" aria-label="Move right">▶<span class="small">RIGHT</span></button>
+    <button class="control" id="canBtn" aria-label="Use, carry, fill, place, or block with the jerry can">▣<span class="small">CAN</span></button>
+    <button class="control" id="jumpBtn" aria-label="Jump">↑<span class="small">JUMP</span></button>
+  </div>
+  <div id="footer">
+    <button id="menuBtn" aria-label="Open menu">☰</button>
+    <div id="footerTitle">KARAMBE VILLAGE WATER RUN</div>
+    <div id="score" aria-live="polite">CANS 00</div>
+  </div>
+</div>
+
+<div id="overlay" class="open" role="dialog" aria-modal="true" aria-labelledby="overlayTitle">
+  <div class="panel">
+    <h1 id="overlayTitle">Karambe Village<br>Water Run</h1>
+    <h2 id="overlaySubtitle">Three levels. Three cans each. Fastest total time wins.</h2>
+    <div id="overlayBody" class="rules">
+      <div class="rule"><b>Move:</b> hold ◀ / ▶. Keep moving into a ladder to climb. Follow the short path downhill to water.</div>
+      <div class="rule"><b>CAN:</b> tap to place ahead or pick up. Hold at water to fill; hold at the village to deliver.</div>
+      <div class="rule"><b>Full can:</b> take the long path left of water. To jump, put it down, jump, then retrieve it.</div>
+      <div class="rule"><b>Rocks (L2+):</b> face the rock and hold CAN to block, or place the can in its path.</div>
+      <div class="rule"><b>Snakes (L3):</b> jump onto them or place a full can ahead to crush them.</div>
+      <div class="rule"><b>Fast retry:</b> delivered cans stay banked. Only time is lost. Finish all three levels to unlock Level Select.</div>
+    </div>
+    <div id="statsBox" class="stats hidden"></div>
+    <div id="levelSelectBox" class="level-select hidden" aria-label="Level select"></div>
+    <button id="primaryBtn" class="action">START WATER RUN</button>
+    <button id="secondaryBtn" class="action secondary hidden">RESTART ROUND</button>
+    <button id="soundBtn" class="action tertiary">SOUND: ON</button>
+  </div>
+</div>
+<div id="rotateNote">Turn the phone upright to play Karambe Village Water Run.</div>
+
+<script>
+(() => {
+  // vendor/sfhs/mobile-controls/profile.ts
+  var defaultMobileControlsSettings = Object.freeze({
+    opacity: 0.6,
+    stickDeadZone: 0.08,
+    relativeSensitivity: 1
+  });
+  var orientations = Object.freeze(["portrait", "landscape"]);
+  function isRecord(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+  function finiteIn(value, minimum, maximum) {
+    return typeof value === "number" && Number.isFinite(value) && value >= minimum && value <= maximum;
+  }
+  function cloneRect(rect) {
+    return Object.freeze({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+  }
+  function cloneLayouts(layouts) {
+    const copy = {};
+    for (const orientation of orientations) {
+      copy[orientation] = Object.freeze(Object.fromEntries(
+        Object.entries(layouts[orientation]).sort(([left], [right]) => left.localeCompare(right)).map(([id, rect]) => [id, cloneRect(rect)])
+      ));
+    }
+    return Object.freeze(copy);
+  }
+  function cloneProfile(profile) {
+    return Object.freeze({
+      schema: "sfhs.mobile-controls-profile@1",
+      settings: Object.freeze({ ...profile.settings }),
+      layouts: cloneLayouts(profile.layouts)
+    });
+  }
+  function createDefaultProfile(declarations, settings = {}) {
+    const layouts = { portrait: {}, landscape: {} };
+    for (const declaration of declarations) {
+      for (const orientation of orientations) {
+        layouts[orientation][declaration.id] = cloneRect(declaration.layout[orientation]);
+      }
+    }
+    return cloneProfile({
+      schema: "sfhs.mobile-controls-profile@1",
+      settings: {
+        ...defaultMobileControlsSettings,
+        ...settings
+      },
+      layouts
+    });
+  }
+  function validateDeclarations(declarations) {
+    if (declarations.length === 0) throw new TypeError("Mobile controls require at least one declaration.");
+    const ids = /* @__PURE__ */ new Set();
+    for (const declaration of declarations) {
+      if (!/^[a-z][a-z0-9-]*$/u.test(declaration.id)) {
+        throw new TypeError(`Invalid mobile control id: ${declaration.id}`);
+      }
+      if (ids.has(declaration.id)) throw new TypeError(`Duplicate mobile control id: ${declaration.id}`);
+      ids.add(declaration.id);
+      if (declaration.label.trim().length === 0) throw new TypeError(`Control ${declaration.id} requires a label.`);
+      if (declaration.type !== "relative1d" && declaration.axis !== void 0) {
+        throw new TypeError(`Control ${declaration.id} may only declare an axis for relative1d.`);
+      }
+      if (declaration.minWidth !== void 0 && !finiteIn(declaration.minWidth, 0.02, 0.8)) {
+        throw new TypeError(`Control ${declaration.id} has an invalid minWidth.`);
+      }
+      if (declaration.minHeight !== void 0 && !finiteIn(declaration.minHeight, 0.02, 0.8)) {
+        throw new TypeError(`Control ${declaration.id} has an invalid minHeight.`);
+      }
+      for (const orientation of orientations) {
+        const rect = declaration.layout[orientation];
+        if (!finiteIn(rect.x, 0, 1) || !finiteIn(rect.y, 0, 1) || !finiteIn(rect.width, 0.02, 1) || !finiteIn(rect.height, 0.02, 1)) {
+          throw new TypeError(`Control ${declaration.id} has invalid ${orientation} geometry.`);
+        }
+      }
+    }
+  }
+  function finding(path, message) {
+    return Object.freeze({ code: "SFHS_MOBILE_CONTROLS_PROFILE_INVALID", path, message });
+  }
+  function validateProfile(value, declarations) {
+    var _a, _b;
+    if (!isRecord(value)) return { findings: Object.freeze([finding("/", "Profile must be an object.")]) };
+    if (value.schema !== "sfhs.mobile-controls-profile@1") {
+      return { findings: Object.freeze([Object.freeze({
+        code: "SFHS_MOBILE_CONTROLS_PROFILE_VERSION_UNSUPPORTED",
+        path: "/schema",
+        message: "Only sfhs.mobile-controls-profile@1 is supported."
+      })]) };
+    }
+    const findings = [];
+    const settings = value.settings;
+    if (!isRecord(settings)) {
+      findings.push(finding("/settings", "Settings must be an object."));
+    } else {
+      if (!finiteIn(settings.opacity, 0.1, 1)) findings.push(finding("/settings/opacity", "Opacity must be between 0.1 and 1."));
+      if (!finiteIn(settings.stickDeadZone, 0, 0.5)) findings.push(finding("/settings/stickDeadZone", "Stick dead zone must be between 0 and 0.5."));
+      if (!finiteIn(settings.relativeSensitivity, 0.25, 4)) findings.push(finding("/settings/relativeSensitivity", "Relative sensitivity must be between 0.25 and 4."));
+    }
+    const layouts = value.layouts;
+    const declarationsById = new Map(declarations.map((entry) => [entry.id, entry]));
+    const normalizedLayouts = { portrait: {}, landscape: {} };
+    if (!isRecord(layouts)) {
+      findings.push(finding("/layouts", "Layouts must be an object."));
+    } else {
+      for (const orientation of orientations) {
+        const orientationLayout = layouts[orientation];
+        if (!isRecord(orientationLayout)) {
+          findings.push(finding(`/layouts/${orientation}`, `${orientation} layout must be an object.`));
+          continue;
+        }
+        for (const [id, candidate] of Object.entries(orientationLayout)) {
+          const declaration = declarationsById.get(id);
+          if (declaration === void 0) {
+            findings.push(Object.freeze({
+              code: "SFHS_MOBILE_CONTROLS_PROFILE_UNKNOWN_CONTROL",
+              path: `/layouts/${orientation}/${id}`,
+              message: `Unknown control id: ${id}`
+            }));
+            continue;
+          }
+          if (!isRecord(candidate)) {
+            findings.push(finding(`/layouts/${orientation}/${id}`, "Control geometry must be an object."));
+            continue;
+          }
+          const minWidth = declaration.minWidth ?? 0.08;
+          const minHeight = declaration.minHeight ?? 0.08;
+          if (!finiteIn(candidate.x, 0, 1) || !finiteIn(candidate.y, 0, 1) || !finiteIn(candidate.width, minWidth, 1) || !finiteIn(candidate.height, minHeight, 1) || typeof candidate.x === "number" && typeof candidate.width === "number" && candidate.x + candidate.width > 1 || typeof candidate.y === "number" && typeof candidate.height === "number" && candidate.y + candidate.height > 1) {
+            findings.push(finding(`/layouts/${orientation}/${id}`, "Control geometry is outside its normalized bounds."));
+            continue;
+          }
+          normalizedLayouts[orientation][id] = {
+            x: candidate.x,
+            y: candidate.y,
+            width: candidate.width,
+            height: candidate.height
+          };
+        }
+        for (const declaration of declarations) {
+          (_a = normalizedLayouts[orientation])[_b = declaration.id] ?? (_a[_b] = cloneRect(declaration.layout[orientation]));
+        }
+      }
+    }
+    if (findings.length > 0 || !isRecord(settings)) return { findings: Object.freeze(findings) };
+    return {
+      profile: cloneProfile({
+        schema: "sfhs.mobile-controls-profile@1",
+        settings: {
+          opacity: settings.opacity,
+          stickDeadZone: settings.stickDeadZone,
+          relativeSensitivity: settings.relativeSensitivity
+        },
+        layouts: normalizedLayouts
+      }),
+      findings: Object.freeze([])
+    };
+  }
+
+  // vendor/sfhs/mobile-controls/runtime.ts
+  var controlStyles = `
+.sfhs-mobile-controls-root{position:fixed;z-index:1000;overflow:hidden;touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;--sfhs-mobile-controls-opacity:.6;--sfhs-mobile-controls-accent:#63d9ff;--sfhs-mobile-controls-bg:rgba(5,18,28,.64);--sfhs-mobile-controls-fg:#f4fbff}
+.sfhs-mobile-control{position:absolute;box-sizing:border-box;display:flex;align-items:center;justify-content:center;border:2px solid color-mix(in srgb,var(--sfhs-mobile-controls-accent) 72%,transparent);background:var(--sfhs-mobile-controls-bg);color:var(--sfhs-mobile-controls-fg);opacity:var(--sfhs-mobile-controls-opacity);border-radius:999px;touch-action:none;overscroll-behavior:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font:700 12px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;padding:0;margin:0}
+.sfhs-mobile-control[data-control-active="true"]{filter:brightness(1.35);border-color:var(--sfhs-mobile-controls-accent)}
+.sfhs-mobile-control-label{pointer-events:none;text-align:center}
+.sfhs-mobile-control-stick-dot{position:absolute;left:50%;top:50%;width:24%;aspect-ratio:1;border-radius:50%;background:var(--sfhs-mobile-controls-accent);transform:translate(-50%,-50%);pointer-events:none}
+.sfhs-mobile-control[data-sfhs-control-type="relative1d"]{border-radius:22px}
+.sfhs-mobile-control-resize{display:none;position:absolute;right:0;bottom:0;width:28px;height:28px;border-radius:50%;background:var(--sfhs-mobile-controls-accent);border:2px solid #031018;transform:translate(18%,18%);touch-action:none}
+.sfhs-mobile-controls-root[data-editing="true"] .sfhs-mobile-control{outline:2px dashed rgba(255,255,255,.8);outline-offset:2px}
+.sfhs-mobile-controls-root[data-editing="true"] .sfhs-mobile-control-resize{display:block}
+`;
+  function orientationFor(width, height) {
+    return height >= width ? "portrait" : "landscape";
+  }
+  function successful() {
+    return Object.freeze({ ok: true, findings: Object.freeze([]) });
+  }
+  function failed(findings) {
+    return Object.freeze({ ok: false, findings: Object.freeze([...findings]) });
+  }
+  function profileFinding(path, message) {
+    return Object.freeze({ code: "SFHS_MOBILE_CONTROLS_PROFILE_INVALID", path, message });
+  }
+  function mutableOutputFor(declaration) {
+    switch (declaration.type) {
+      case "stick2d":
+        return { type: "stick2d", x: 0, y: 0, magnitude: 0, active: false };
+      case "relative1d":
+        return { type: "relative1d", rawNormalizedDelta: 0, delta: 0, active: false };
+      case "hold":
+        return { type: "hold", pressed: false };
+      case "pulse":
+        return { type: "pulse", fired: false, count: 0 };
+      case "toggle":
+        return { type: "toggle", state: false };
+    }
+  }
+  function frozenOutput(output) {
+    return Object.freeze({ ...output });
+  }
+  function deepSnapshot(sequence, lifecycle, route, orientation, persistence, outputs, owners) {
+    return Object.freeze({
+      schema: "sfhs.mobile-controls-state@1",
+      sequence,
+      lifecycle,
+      route,
+      orientation,
+      persistence,
+      controls: Object.freeze(Object.fromEntries(
+        Object.entries(outputs).sort(([left], [right]) => left.localeCompare(right)).map(([id, output]) => [id, frozenOutput(output)])
+      )),
+      activePointers: Object.freeze([...owners.values()].sort((left, right) => left.identifier - right.identifier).map((owner) => Object.freeze({ controlId: owner.controlId, identifier: owner.identifier })))
+    });
+  }
+  function createMobileControlsRuntime(options) {
+    validateDeclarations(options.controls);
+    const declarations = Object.freeze(options.controls.map((entry) => Object.freeze({ ...entry })));
+    const declarationById = new Map(declarations.map((entry) => [entry.id, entry]));
+    const defaultProfile = createDefaultProfile(declarations, options.settings);
+    const defaultValidation = validateProfile(defaultProfile, declarations);
+    if (defaultValidation.profile === void 0) {
+      throw new TypeError(defaultValidation.findings.map((entry) => `${entry.path}: ${entry.message}`).join("; "));
+    }
+    let profile = cloneProfile(defaultProfile);
+    let root;
+    let lifecycle = "created";
+    let route = "none";
+    let persistenceStatus = options.persistence === void 0 ? "disabled" : "unavailable";
+    let storage;
+    let orientation = "portrait";
+    let sequence = 0;
+    let editBaseline;
+    let safeInsets = Object.freeze({ top: 0, right: 0, bottom: 0, left: 0 });
+    const outputs = Object.fromEntries(declarations.map((entry) => [entry.id, mutableOutputFor(entry)]));
+    const elements = /* @__PURE__ */ new Map();
+    const owners = /* @__PURE__ */ new Map();
+    const ownerByControl = /* @__PURE__ */ new Map();
+    const listeners = /* @__PURE__ */ new Set();
+    const disposers = [];
+    const notify = () => {
+      sequence += 1;
+      const snapshot = read();
+      for (const listener of listeners) listener(snapshot);
+    };
+    const add = (target, type, listener, eventOptions) => {
+      target.addEventListener(type, listener, eventOptions);
+      disposers.push(() => target.removeEventListener(type, listener, eventOptions));
+    };
+    const resolveStorage = () => {
+      if (options.persistence === void 0) return void 0;
+      if (options.persistence.storage !== void 0) return options.persistence.storage;
+      try {
+        return window.localStorage;
+      } catch {
+        return void 0;
+      }
+    };
+    const persist = () => {
+      if (options.persistence === void 0) {
+        persistenceStatus = "disabled";
+        return;
+      }
+      if (storage === void 0) {
+        persistenceStatus = "unavailable";
+        return;
+      }
+      try {
+        storage.setItem(options.persistence.key, JSON.stringify(profile));
+        persistenceStatus = "ready";
+      } catch {
+        persistenceStatus = "write-failed";
+      }
+    };
+    const loadPersisted = () => {
+      storage = resolveStorage();
+      if (options.persistence === void 0) {
+        persistenceStatus = "disabled";
+        return;
+      }
+      if (storage === void 0) {
+        persistenceStatus = "unavailable";
+        return;
+      }
+      try {
+        const serialized = storage.getItem(options.persistence.key);
+        if (serialized === null) {
+          persistenceStatus = "ready";
+          return;
+        }
+        const result = validateProfile(JSON.parse(serialized), declarations);
+        if (result.profile === void 0) {
+          persistenceStatus = "invalid";
+          return;
+        }
+        profile = result.profile;
+        persistenceStatus = "ready";
+      } catch {
+        persistenceStatus = "invalid";
+      }
+    };
+    const measureInsets = () => {
+      if (root === void 0) return Object.freeze({ top: 0, right: 0, bottom: 0, left: 0 });
+      const probe = document.createElement("div");
+      probe.style.cssText = "position:absolute;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)";
+      root.append(probe);
+      const style = getComputedStyle(probe);
+      const measured = Object.freeze({
+        top: Number.parseFloat(style.paddingTop) || 0,
+        right: Number.parseFloat(style.paddingRight) || 0,
+        bottom: Number.parseFloat(style.paddingBottom) || 0,
+        left: Number.parseFloat(style.paddingLeft) || 0
+      });
+      probe.remove();
+      return measured;
+    };
+    const clampedRect = (declaration, rect) => {
+      if (root === void 0) return rect;
+      const bounds = root.getBoundingClientRect();
+      const width = Math.max(1, bounds.width);
+      const height = Math.max(1, bounds.height);
+      const minWidth = declaration.minWidth ?? 0.08;
+      const minHeight = declaration.minHeight ?? 0.08;
+      const safeLeft = safeInsets.left / width;
+      const safeRight = safeInsets.right / width;
+      const safeTop = safeInsets.top / height;
+      const safeBottom = safeInsets.bottom / height;
+      const rectWidth = Math.min(Math.max(rect.width, minWidth), Math.max(minWidth, 1 - safeLeft - safeRight));
+      const rectHeight = Math.min(Math.max(rect.height, minHeight), Math.max(minHeight, 1 - safeTop - safeBottom));
+      return Object.freeze({
+        x: Math.min(Math.max(rect.x, safeLeft), 1 - safeRight - rectWidth),
+        y: Math.min(Math.max(rect.y, safeTop), 1 - safeBottom - rectHeight),
+        width: rectWidth,
+        height: rectHeight
+      });
+    };
+    const applyLayout = () => {
+      if (root === void 0) return;
+      root.style.setProperty("--sfhs-mobile-controls-opacity", String(profile.settings.opacity));
+      root.dataset.editing = String(lifecycle === "editing");
+      for (const declaration of declarations) {
+        const element = elements.get(declaration.id);
+        if (element === void 0) continue;
+        const rect = clampedRect(declaration, profile.layouts[orientation][declaration.id] ?? declaration.layout[orientation]);
+        element.style.left = `${rect.x * 100}%`;
+        element.style.top = `${rect.y * 100}%`;
+        element.style.width = `${rect.width * 100}%`;
+        element.style.height = `${rect.height * 100}%`;
+      }
+    };
+    const updateViewport = (release) => {
+      if (root === void 0) return;
+      if (release) releaseAll("viewport-change");
+      const viewport = window.visualViewport;
+      const width = viewport?.width ?? window.innerWidth;
+      const height = viewport?.height ?? window.innerHeight;
+      root.style.left = `${viewport?.offsetLeft ?? 0}px`;
+      root.style.top = `${viewport?.offsetTop ?? 0}px`;
+      root.style.width = `${width}px`;
+      root.style.height = `${height}px`;
+      orientation = orientationFor(width, height);
+      safeInsets = measureInsets();
+      applyLayout();
+      notify();
+    };
+    const setActiveVisual = (controlId, active) => {
+      const element = elements.get(controlId);
+      if (element !== void 0) element.dataset.controlActive = String(active);
+    };
+    const syncStickVisual = (controlId, x, y) => {
+      const dot = elements.get(controlId)?.querySelector(".sfhs-mobile-control-stick-dot");
+      if (dot !== null && dot !== void 0) dot.style.transform = `translate(calc(-50% + ${x * 120}%),calc(-50% + ${-y * 120}%))`;
+    };
+    const releaseOwner = (identifier) => {
+      const owner = owners.get(identifier);
+      if (owner === void 0) return;
+      owners.delete(identifier);
+      ownerByControl.delete(owner.controlId);
+      const output = outputs[owner.controlId];
+      if (output === void 0) return;
+      switch (output.type) {
+        case "stick2d":
+          output.x = 0;
+          output.y = 0;
+          output.magnitude = 0;
+          output.active = false;
+          syncStickVisual(owner.controlId, 0, 0);
+          break;
+        case "relative1d":
+          output.active = false;
+          break;
+        case "hold":
+          output.pressed = false;
+          break;
+        case "pulse":
+          break;
+        case "toggle":
+          break;
+      }
+      setActiveVisual(owner.controlId, false);
+      notify();
+    };
+    const beginOwner = (identifier, controlId, clientX, clientY, target) => {
+      if (ownerByControl.has(controlId) || owners.has(identifier)) return false;
+      const declaration = declarationById.get(controlId);
+      const element = elements.get(controlId);
+      const output = outputs[controlId];
+      if (declaration === void 0 || element === void 0 || output === void 0) return false;
+      const bounds = element.getBoundingClientRect();
+      let editKind;
+      let editRect;
+      if (lifecycle === "editing") {
+        if (declaration.editable === false) return false;
+        editKind = target instanceof Element && target.closest("[data-sfhs-resize-handle]") !== null ? "resize" : "drag";
+        editRect = profile.layouts[orientation][controlId] ?? declaration.layout[orientation];
+      } else {
+        switch (output.type) {
+          case "stick2d":
+            output.active = true;
+            break;
+          case "relative1d":
+            output.active = true;
+            break;
+          case "hold":
+            output.pressed = true;
+            break;
+          case "pulse":
+            output.count += 1;
+            output.fired = true;
+            break;
+          case "toggle":
+            output.state = !output.state;
+            break;
+        }
+      }
+      const axis = declaration.axis ?? "x";
+      const owner = {
+        identifier,
+        controlId,
+        startX: clientX,
+        startY: clientY,
+        lastX: clientX,
+        lastY: clientY,
+        extent: Math.max(1, axis === "x" ? bounds.width : bounds.height),
+        ...editKind === void 0 ? {} : { editKind },
+        ...editRect === void 0 ? {} : { editRect }
+      };
+      owners.set(identifier, owner);
+      ownerByControl.set(controlId, identifier);
+      setActiveVisual(controlId, true);
+      notify();
+      return true;
+    };
+    const moveOwner = (identifier, clientX, clientY) => {
+      const owner = owners.get(identifier);
+      if (owner === void 0 || root === void 0) return;
+      const declaration = declarationById.get(owner.controlId);
+      const output = outputs[owner.controlId];
+      if (declaration === void 0 || output === void 0) return;
+      if (owner.editKind !== void 0 && owner.editRect !== void 0) {
+        const bounds = root.getBoundingClientRect();
+        const dx = (clientX - owner.startX) / Math.max(1, bounds.width);
+        const dy = (clientY - owner.startY) / Math.max(1, bounds.height);
+        const candidate = owner.editKind === "drag" ? { ...owner.editRect, x: owner.editRect.x + dx, y: owner.editRect.y + dy } : { ...owner.editRect, width: owner.editRect.width + dx, height: owner.editRect.height + dy };
+        const clean = clampedRect(declaration, candidate);
+        profile = cloneProfile({
+          ...profile,
+          layouts: {
+            ...profile.layouts,
+            [orientation]: { ...profile.layouts[orientation], [owner.controlId]: clean }
+          }
+        });
+        applyLayout();
+        owner.lastX = clientX;
+        owner.lastY = clientY;
+        notify();
+        return;
+      }
+      switch (output.type) {
+        case "stick2d": {
+          const element = elements.get(owner.controlId);
+          const rect = element?.getBoundingClientRect();
+          const radius = Math.max(1, Math.min(rect?.width ?? 1, rect?.height ?? 1) * 0.35);
+          const dx = clientX - owner.startX;
+          const dy = clientY - owner.startY;
+          const distance = Math.hypot(dx, dy);
+          const magnitude = Math.min(1, distance / radius);
+          if (distance === 0 || magnitude < profile.settings.stickDeadZone) {
+            output.x = 0;
+            output.y = 0;
+            output.magnitude = 0;
+          } else if (distance > 0) {
+            output.x = dx / distance * magnitude;
+            output.y = -dy / distance * magnitude;
+            output.magnitude = magnitude;
+          }
+          syncStickVisual(owner.controlId, output.x, output.y);
+          break;
+        }
+        case "relative1d": {
+          const axis = declaration.axis ?? "x";
+          const movement = axis === "x" ? clientX - owner.lastX : clientY - owner.lastY;
+          const normalized = movement / owner.extent;
+          output.rawNormalizedDelta += normalized;
+          output.delta += normalized * profile.settings.relativeSensitivity;
+          break;
+        }
+        case "hold":
+        case "pulse":
+        case "toggle":
+          break;
+      }
+      owner.lastX = clientX;
+      owner.lastY = clientY;
+      notify();
+    };
+    const pointerSamples = (event) => {
+      const candidate = event;
+      try {
+        const samples = candidate.getCoalescedEvents?.();
+        if (samples !== void 0 && samples.length > 0) return samples;
+      } catch {
+      }
+      return Object.freeze([event]);
+    };
+    const installPointerRoute = () => {
+      for (const [controlId, element] of elements) {
+        add(element, "pointerdown", ((rawEvent) => {
+          const event = rawEvent;
+          if (event.pointerType === "mouse" && event.button !== 0) return;
+          if (!beginOwner(event.pointerId, controlId, event.clientX, event.clientY, event.target)) return;
+          event.preventDefault();
+          event.stopPropagation();
+          try {
+            element.setPointerCapture(event.pointerId);
+          } catch {
+          }
+        }), { passive: false });
+        add(element, "lostpointercapture", ((rawEvent) => {
+          releaseOwner(rawEvent.pointerId);
+        }), { passive: false });
+      }
+      add(document, "pointermove", ((rawEvent) => {
+        const event = rawEvent;
+        if (!owners.has(event.pointerId)) return;
+        event.preventDefault();
+        for (const sample of pointerSamples(event)) moveOwner(event.pointerId, sample.clientX, sample.clientY);
+      }), { passive: false });
+      const finish = ((rawEvent) => {
+        const event = rawEvent;
+        if (!owners.has(event.pointerId)) return;
+        event.preventDefault();
+        releaseOwner(event.pointerId);
+      });
+      add(document, "pointerup", finish, { passive: false });
+      add(document, "pointercancel", finish, { passive: false });
+    };
+    const installTouchRoute = () => {
+      for (const [controlId, element] of elements) {
+        add(element, "touchstart", ((rawEvent) => {
+          const event = rawEvent;
+          for (const touch of Array.from(event.changedTouches)) {
+            if (beginOwner(touch.identifier, controlId, touch.clientX, touch.clientY, event.target)) {
+              event.preventDefault();
+              event.stopPropagation();
+              break;
+            }
+          }
+        }), { passive: false });
+      }
+      add(document, "touchmove", ((rawEvent) => {
+        const event = rawEvent;
+        let handled = false;
+        for (const touch of Array.from(event.touches.length > 0 ? event.touches : event.changedTouches)) {
+          if (!owners.has(touch.identifier)) continue;
+          handled = true;
+          moveOwner(touch.identifier, touch.clientX, touch.clientY);
+        }
+        if (handled) event.preventDefault();
+      }), { passive: false });
+      const finish = ((rawEvent) => {
+        const event = rawEvent;
+        let handled = false;
+        for (const touch of Array.from(event.changedTouches)) {
+          if (!owners.has(touch.identifier)) continue;
+          handled = true;
+          releaseOwner(touch.identifier);
+        }
+        if (handled) event.preventDefault();
+      });
+      add(document, "touchend", finish, { passive: false });
+      add(document, "touchcancel", finish, { passive: false });
+    };
+    const makeControlElement = (declaration) => {
+      const discrete = declaration.type === "hold" || declaration.type === "pulse" || declaration.type === "toggle";
+      const element = document.createElement(discrete ? "button" : "div");
+      if (element instanceof HTMLButtonElement) element.type = "button";
+      element.className = "sfhs-mobile-control";
+      element.dataset.sfhsControlId = declaration.id;
+      element.dataset.sfhsControlType = declaration.type;
+      element.dataset.controlActive = "false";
+      element.setAttribute("aria-label", declaration.label);
+      if (!discrete) {
+        element.setAttribute("role", "button");
+        element.tabIndex = 0;
+      }
+      const label = document.createElement("span");
+      label.className = "sfhs-mobile-control-label";
+      label.textContent = declaration.label;
+      element.append(label);
+      if (declaration.type === "stick2d") {
+        const dot = document.createElement("span");
+        dot.className = "sfhs-mobile-control-stick-dot";
+        element.append(dot);
+      }
+      const resize = document.createElement("span");
+      resize.className = "sfhs-mobile-control-resize";
+      resize.dataset.sfhsResizeHandle = "true";
+      resize.setAttribute("aria-hidden", "true");
+      element.append(resize);
+      return element;
+    };
+    function read() {
+      return deepSnapshot(sequence, lifecycle, route, orientation, persistenceStatus, outputs, owners);
+    }
+    function releaseAll(reason = "consumer") {
+      void reason;
+      owners.clear();
+      ownerByControl.clear();
+      for (const [controlId, output] of Object.entries(outputs)) {
+        switch (output.type) {
+          case "stick2d":
+            output.x = 0;
+            output.y = 0;
+            output.magnitude = 0;
+            output.active = false;
+            syncStickVisual(controlId, 0, 0);
+            break;
+          case "relative1d":
+            output.rawNormalizedDelta = 0;
+            output.delta = 0;
+            output.active = false;
+            break;
+          case "hold":
+            output.pressed = false;
+            break;
+          case "pulse":
+            output.fired = false;
+            output.count = 0;
+            break;
+          case "toggle":
+            output.state = false;
+            break;
+        }
+        setActiveVisual(controlId, false);
+      }
+      notify();
+    }
+    const controller = {
+      mount(mountRoot) {
+        if (lifecycle === "destroyed") throw new Error("Destroyed mobile controls cannot be mounted.");
+        if (root !== void 0) throw new Error("Mobile controls are already mounted.");
+        root = mountRoot;
+        loadPersisted();
+        root.replaceChildren();
+        root.classList.add("sfhs-mobile-controls-root");
+        const style = document.createElement("style");
+        style.dataset.sfhsMobileControlsStyle = "true";
+        style.textContent = controlStyles;
+        root.append(style);
+        for (const declaration of declarations) {
+          const element = makeControlElement(declaration);
+          elements.set(declaration.id, element);
+          root.append(element);
+        }
+        lifecycle = "mounted";
+        route = typeof window.PointerEvent === "function" ? "pointer" : "touch";
+        if (route === "pointer") installPointerRoute();
+        else installTouchRoute();
+        add(window, "blur", (() => releaseAll("blur")));
+        add(window, "pagehide", (() => releaseAll("pagehide")));
+        add(document, "visibilitychange", (() => {
+          if (document.visibilityState === "hidden") releaseAll("visibility-hidden");
+        }));
+        add(window, "resize", (() => updateViewport(true)));
+        add(window, "orientationchange", (() => updateViewport(true)));
+        if (window.visualViewport !== null) {
+          add(window.visualViewport, "resize", (() => updateViewport(true)));
+          add(window.visualViewport, "scroll", (() => updateViewport(false)));
+        }
+        if (options.persistence !== void 0) {
+          add(window, "storage", ((rawEvent) => {
+            const event = rawEvent;
+            if (event.key !== options.persistence?.key || event.newValue === null) return;
+            try {
+              const result = validateProfile(JSON.parse(event.newValue), declarations);
+              if (result.profile === void 0) {
+                persistenceStatus = "invalid";
+              } else {
+                profile = result.profile;
+                persistenceStatus = "ready";
+                applyLayout();
+              }
+            } catch {
+              persistenceStatus = "invalid";
+            }
+            notify();
+          }));
+        }
+        updateViewport(false);
+      },
+      destroy() {
+        if (lifecycle === "destroyed") return;
+        releaseAll("destroy");
+        for (const dispose of disposers.splice(0)) dispose();
+        if (root !== void 0) {
+          root.replaceChildren();
+          root.classList.remove("sfhs-mobile-controls-root");
+          delete root.dataset.editing;
+        }
+        elements.clear();
+        route = "none";
+        lifecycle = "destroyed";
+        root = void 0;
+        notify();
+        listeners.clear();
+      },
+      read,
+      flush() {
+        const snapshot = read();
+        for (const output of Object.values(outputs)) {
+          if (output.type === "relative1d") {
+            output.rawNormalizedDelta = 0;
+            output.delta = 0;
+          } else if (output.type === "pulse") {
+            output.fired = false;
+            output.count = 0;
+          }
+        }
+        sequence += 1;
+        return snapshot;
+      },
+      subscribe(listener) {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+      releaseAll,
+      updateConfig(patch) {
+        const candidate = {
+          ...profile,
+          settings: { ...profile.settings, ...patch }
+        };
+        const result = validateProfile(candidate, declarations);
+        if (result.profile === void 0) return failed(result.findings);
+        profile = result.profile;
+        applyLayout();
+        persist();
+        notify();
+        return successful();
+      },
+      updateLayout(targetOrientation, layoutPatch) {
+        const candidate = {
+          ...profile,
+          layouts: {
+            ...profile.layouts,
+            [targetOrientation]: { ...profile.layouts[targetOrientation], ...layoutPatch }
+          }
+        };
+        const result = validateProfile(candidate, declarations);
+        if (result.profile === void 0) return failed(result.findings);
+        profile = result.profile;
+        applyLayout();
+        persist();
+        notify();
+        return successful();
+      },
+      beginEdit() {
+        if (lifecycle !== "mounted") return;
+        releaseAll("edit-entry");
+        editBaseline = cloneProfile(profile);
+        lifecycle = "editing";
+        applyLayout();
+        notify();
+      },
+      commitEdit() {
+        if (lifecycle !== "editing") return failed([profileFinding("/lifecycle", "Controls are not being edited.")]);
+        const result = validateProfile(profile, declarations);
+        if (result.profile === void 0) return failed(result.findings);
+        profile = result.profile;
+        editBaseline = void 0;
+        lifecycle = "mounted";
+        applyLayout();
+        persist();
+        notify();
+        return successful();
+      },
+      cancelEdit() {
+        if (lifecycle !== "editing") return;
+        if (editBaseline !== void 0) profile = editBaseline;
+        editBaseline = void 0;
+        lifecycle = "mounted";
+        applyLayout();
+        notify();
+      },
+      exportProfile() {
+        return cloneProfile(profile);
+      },
+      importProfile(value) {
+        const result = validateProfile(value, declarations);
+        if (result.profile === void 0) return failed(result.findings);
+        releaseAll("profile-import");
+        profile = result.profile;
+        applyLayout();
+        persist();
+        notify();
+        return successful();
+      },
+      resetProfile() {
+        releaseAll("profile-reset");
+        profile = cloneProfile(defaultProfile);
+        editBaseline = void 0;
+        if (lifecycle === "editing") lifecycle = "mounted";
+        if (options.persistence !== void 0 && storage !== void 0) {
+          try {
+            storage.removeItem(options.persistence.key);
+            persistenceStatus = "ready";
+          } catch {
+            persistenceStatus = "write-failed";
+          }
+        }
+        applyLayout();
+        notify();
+      }
+    };
+    return Object.freeze(controller);
+  }
+
+  // vendor/sfhs/mobile-controls/index.ts
+  var createMobileControls = createMobileControlsRuntime;
+
+  // src/controls.ts
+  function createGameControls(game, UI = {}) {
+    const ids = ["left", "right", "can", "jump"];
+    const originals = ids.map((id) => document.getElementById(`${id}Btn`));
+    const root = document.createElement("div");
+    root.id = "sfhs-game-controls";
+    document.body.append(root);
+    const rect = { x: 0.01, y: 0.75, width: 0.2, height: 0.1 };
+    const mobile = createMobileControls({ controls: ids.map((id, i) => ({
+      id,
+      type: "hold",
+      label: originals[i].getAttribute("aria-label") || id,
+      editable: false,
+      minWidth: 0.02,
+      minHeight: 0.02,
+      layout: { portrait: rect, landscape: rect }
+    })), settings: { opacity: 1 } });
+    mobile.mount(root);
+    const elements = new Map(ids.map((id) => [id, root.querySelector(`[data-sfhs-control-id="${id}"]`)]));
+    originals.forEach((original, i) => {
+      const element = elements.get(ids[i]);
+      element.classList.add("control");
+      const label = element.querySelector(".sfhs-mobile-control-label");
+      label.innerHTML = original.innerHTML;
+      original.style.visibility = "hidden";
+      original.setAttribute("aria-hidden", "true");
+      original.setAttribute("inert", "");
+      original.tabIndex = -1;
+    });
+    const style = document.createElement("style");
+    style.textContent = `
+    #sfhs-game-controls{pointer-events:none;z-index:5;background:none}
+    #sfhs-game-controls .sfhs-mobile-control{pointer-events:auto;display:block;padding:0;opacity:1;border:1px solid rgba(255,255,255,.17);border-bottom-color:rgba(0,0,0,.48);border-radius:17px;color:#fffbe5;background:linear-gradient(var(--button-top),var(--button-bottom));box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 4px 0 #0a1e12;font-weight:900;font-size:clamp(16px,4.5vw,23px);letter-spacing:.02em;text-shadow:0 2px 0 rgba(0,0,0,.5)}
+    #sfhs-game-controls [data-sfhs-control-id="can"]{background:linear-gradient(#9a7a16,#5d480d)}
+    #sfhs-game-controls [data-sfhs-control-id="jump"]{background:linear-gradient(#7a4331,#472318)}
+    #sfhs-game-controls .sfhs-mobile-control[data-control-active="true"]{filter:none;transform:translateY(3px);box-shadow:inset 0 2px 5px rgba(0,0,0,.45),0 1px 0 #0a1e12;background:var(--button-press)}
+  `;
+    root.append(style);
+    const disposers = [];
+    const listen = (target, type, fn, capture = false) => {
+      target.addEventListener(type, fn, { capture, passive: false });
+      disposers.push(() => target.removeEventListener(type, fn, capture));
+    };
+    const keys = /* @__PURE__ */ new Set();
+    let sequence = 0;
+    let actions = [];
+    let transaction = null;
+    let previous = /* @__PURE__ */ new Map();
+    let disposed = false;
+    let clearing = false;
+    const acceptedReleases = /* @__PURE__ */ new Set();
+    const playing = () => game.state === "playing";
+    const isLeft = () => keys.has("a") || keys.has("arrowleft");
+    const isRight = () => keys.has("d") || keys.has("arrowright");
+    const canKeys = () => keys.has(" ") || keys.has("c");
+    const clearCan = () => {
+      if (transaction) transaction.canceled = true;
+      transaction = null;
+      actions = actions.filter((action) => action.kind === "jump");
+      game.cancelCanAction();
+    };
+    const beginCan = (source) => {
+      if (transaction || !playing()) return;
+      transaction = { token: ++sequence, source, started: performance.now(), committed: false, canceled: false };
+      actions.push({ kind: "begin", source, transaction });
+    };
+    const endCan = (source, commit) => {
+      if (!transaction || transaction.source !== source) return;
+      if (!commit) {
+        clearCan();
+        return;
+      }
+      transaction.committed = true;
+      transaction.ended = performance.now();
+      actions.push({ kind: "end", source, transaction });
+    };
+    const movement = () => {
+      const controls = mobile.read().controls;
+      game.input.left = playing() && (isLeft() || controls.left.pressed);
+      game.input.right = playing() && (isRight() || controls.right.pressed);
+    };
+    function releaseAll(reason = "consumer") {
+      if (clearing) return;
+      clearing = true;
+      actions = [];
+      keys.clear();
+      acceptedReleases.clear();
+      clearCan();
+      mobile.releaseAll(reason);
+      previous.clear();
+      game.input.left = game.input.right = false;
+      if (game.player) game.player.jumpBuffer = 0;
+      clearing = false;
+    }
+    const unsubscribe = mobile.subscribe((snapshot) => {
+      const current = new Map(snapshot.activePointers.map((owner) => [owner.identifier, owner.controlId]));
+      for (const [id, control] of previous) {
+        if (current.has(id)) continue;
+        const source = `pointer:${id}`;
+        const validRelease = acceptedReleases.delete(id);
+        if (control === "can" && !validRelease) endCan(source, false);
+        if (!validRelease) actions = actions.filter((action) => action.source !== source);
+      }
+      for (const [id, control] of current) {
+        if (previous.has(id) || clearing) continue;
+        game.sound.unlock();
+        if (!playing()) continue;
+        const source = `pointer:${id}`;
+        if (control === "can") beginCan(source);
+        if (control === "jump") actions.push({ kind: "jump", source });
+      }
+      previous = current;
+      if (!snapshot.controls.left || !snapshot.controls.left.pressed) game.input.left = playing() && isLeft();
+      if (!snapshot.controls.right || !snapshot.controls.right.pressed) game.input.right = playing() && isRight();
+    });
+    const inside = (id, x, y) => {
+      const bounds = elements.get(id).getBoundingClientRect();
+      return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
+    };
+    listen(document, "pointerup", ((event) => {
+      const owner = mobile.read().activePointers.find((item) => item.identifier === event.pointerId);
+      if (!owner) return;
+      const valid = inside(owner.controlId, event.clientX, event.clientY) && playing();
+      if (valid) acceptedReleases.add(event.pointerId);
+      if (owner.controlId === "can") endCan(`pointer:${event.pointerId}`, valid);
+    }), true);
+    listen(document, "pointermove", ((event) => {
+      const owner = mobile.read().activePointers.find((item) => item.identifier === event.pointerId);
+      if (!owner || inside(owner.controlId, event.clientX, event.clientY)) return;
+      document.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: event.pointerId, pointerType: event.pointerType }));
+    }), true);
+    listen(document, "touchend", ((event) => {
+      if (mobile.read().route !== "touch") return;
+      for (const touch of Array.from(event.changedTouches)) {
+        const owner = mobile.read().activePointers.find((item) => item.identifier === touch.identifier);
+        if (!owner) continue;
+        const valid = inside(owner.controlId, touch.clientX, touch.clientY) && playing();
+        if (valid) acceptedReleases.add(touch.identifier);
+        if (owner.controlId === "can") endCan(`pointer:${touch.identifier}`, valid);
+      }
+    }), true);
+    listen(document, "touchmove", ((event) => {
+      if (mobile.read().route !== "touch") return;
+      for (const touch of Array.from(event.changedTouches)) {
+        const owner = mobile.read().activePointers.find((item) => item.identifier === touch.identifier);
+        if (!owner || inside(owner.controlId, touch.clientX, touch.clientY)) continue;
+        const canceled = new Event("touchcancel", { bubbles: true });
+        Object.defineProperty(canceled, "changedTouches", { value: [touch] });
+        document.dispatchEvent(canceled);
+      }
+    }), true);
+    const supportedKeys = /* @__PURE__ */ new Set(["arrowleft", "arrowright", "arrowup", "a", "d", "w", " ", "c", "escape"]);
+    listen(window, "keydown", ((event) => {
+      const key = event.key.toLowerCase();
+      if (!supportedKeys.has(key)) return;
+      if (event.target?.matches?.('input,textarea,select,[contenteditable="true"]')) return;
+      event.preventDefault();
+      if (event.repeat || keys.has(key)) return;
+      if (key === "escape") {
+        releaseAll("menu");
+        document.getElementById("menuBtn")?.click();
+        return;
+      }
+      if (!playing()) return;
+      const wasCan = canKeys();
+      keys.add(key);
+      game.sound.unlock();
+      if (key === "arrowup" || key === "w") actions.push({ kind: "jump", source: `key:${key}` });
+      if ((key === " " || key === "c") && !wasCan) beginCan("keyboard");
+    }));
+    listen(window, "keyup", ((event) => {
+      const key = event.key.toLowerCase();
+      if (!supportedKeys.has(key)) return;
+      event.preventDefault();
+      const hadKey = keys.delete(key);
+      if (hadKey && (key === " " || key === "c") && !canKeys()) endCan("keyboard", playing());
+      movement();
+    }));
+    const layout = () => {
+      if (disposed) return;
+      const viewport = root.getBoundingClientRect();
+      if (!viewport.width || !viewport.height) return;
+      const patch = Object.fromEntries(originals.map((original, i) => {
+        const bounds = original.getBoundingClientRect();
+        return [ids[i], { x: Math.max(0, (bounds.left - viewport.left) / viewport.width), y: Math.max(0, (bounds.top - viewport.top) / viewport.height), width: Math.min(1, bounds.width / viewport.width), height: Math.min(1, bounds.height / viewport.height) }];
+      }));
+      mobile.updateLayout("portrait", patch);
+      mobile.updateLayout("landscape", patch);
+    };
+    listen(window, "blur", (() => {
+      releaseAll("blur");
+      if (playing()) {
+        game.pause();
+        UI.showOverlay?.("pause");
+      }
+    }));
+    listen(window, "pagehide", (() => releaseAll("pagehide")));
+    listen(document, "visibilitychange", (() => {
+      if (document.visibilityState === "hidden") releaseAll("visibility-hidden");
+    }));
+    for (const type of ["resize", "orientationchange"]) listen(window, type, (() => {
+      releaseAll(type);
+      layout();
+      game.resize();
+    }));
+    if (window.visualViewport) {
+      listen(window.visualViewport, "resize", (() => {
+        releaseAll("viewport-resize");
+        layout();
+      }));
+      listen(window.visualViewport, "scroll", (() => {
+        releaseAll("viewport-scroll");
+        layout();
+      }));
+    }
+    const observer = new ResizeObserver(() => {
+      releaseAll("layout");
+      layout();
+      game.resize();
+    });
+    observer.observe(document.getElementById("controls"));
+    layout();
+    return {
+      flush() {
+        if (!playing()) {
+          releaseAll("not-playing");
+          return mobile.read();
+        }
+        const snapshot = mobile.flush();
+        movement();
+        const pending = actions;
+        actions = [];
+        for (const action of pending) {
+          if (!playing()) break;
+          if (action.kind === "jump") {
+            game.jump();
+            continue;
+          }
+          const current = action.transaction;
+          if (current.canceled) continue;
+          if (action.kind === "begin") game.beginCanAction();
+          if (action.kind === "end") {
+            if (game.canPress) game.canPress.time = Math.max(game.canPress.time, ((current.ended ?? performance.now()) - current.started) / 1e3);
+            game.endCanAction(true);
+            if (transaction === current) transaction = null;
+          }
+        }
+        return snapshot;
+      },
+      releaseAll,
+      read() {
+        return { mobile: mobile.read(), heldKeys: [...keys], queuedActions: actions.map((action) => action.kind), canTransaction: transaction ? { ...transaction } : null };
+      },
+      dispose() {
+        releaseAll("dispose");
+        disposed = true;
+        unsubscribe();
+        observer.disconnect();
+        disposers.forEach((fn) => fn());
+        mobile.destroy();
+        root.remove();
+        originals.forEach((original) => {
+          original.style.visibility = "";
+          original.removeAttribute("aria-hidden");
+          original.removeAttribute("inert");
+          original.removeAttribute("tabindex");
+        });
+      }
+    };
+  }
+
+  // <stdin>
+  (() => {
+    "use strict";
+    const BUILD_ID = "karambe-completion2";
+    const SAVE_VERSION = 1;
+    const WORLD_W = 480;
+    const WORLD_H = 860;
+    const CANS_PER_LEVEL = 3;
+    const BUILD_LEVEL_SELECT = new URLSearchParams(location.search).get("dev") === "1" && (location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(location.hostname));
+    const ROCK_TOP_EXIT_X = 378;
+    const FIXED_STEP = 1 / 120;
+    const LEVELS = [
+      { number: 1, name: "WATER RUN", rocks: false, snakes: false },
+      { number: 2, name: "ROCKS", rocks: true, snakes: false },
+      { number: 3, name: "ROCKS + SNAKES", rocks: true, snakes: true }
+    ];
+    const ROCK_PATTERN = [
+      { delay: 1.18, target: 270 },
+      { delay: 0.92, target: 150 },
+      { delay: 0.72, target: 305 },
+      { delay: 1.04, target: 205 },
+      { delay: 0.62, target: 245 },
+      { delay: 1.16, target: 120 }
+    ];
+    const BRIDGE_X1 = 205;
+    const BRIDGE_X2 = 315;
+    const BOTTOM_PLATFORM = 5;
+    const UPPER_BYPASS = 3;
+    const LOWER_BYPASS = 4;
+    const $ = (id) => document.getElementById(id);
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const approach = (value, target, amount) => value < target ? Math.min(value + amount, target) : Math.max(value - amount, target);
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const formatTime = (seconds) => {
+      const safe = Math.max(0, Number(seconds) || 0);
+      const mins = Math.floor(safe / 60);
+      const secs = Math.floor(safe % 60);
+      const centis = Math.floor((safe - Math.floor(safe)) * 100);
+      return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${String(centis).padStart(2, "0")}`;
+    };
+    function mixColor(a, b, t) {
+      const pa = a.match(/\d+/g).map(Number);
+      const pb = b.match(/\d+/g).map(Number);
+      return `rgb(${Math.round(lerp(pa[0], pb[0], t))},${Math.round(lerp(pa[1], pb[1], t))},${Math.round(lerp(pa[2], pb[2], t))})`;
+    }
+    class SoundBank {
+      constructor() {
+        this.ctx = null;
+        this.master = null;
+        this.enabled = true;
+        try {
+          this.enabled = localStorage.getItem("karambe-audio-enabled") !== "0";
+        } catch {
+        }
+        this.voices = /* @__PURE__ */ new Set();
+        this.playing = false;
+        this.level = 1;
+        this.nextBeat = 0;
+        this.beat = 0;
+        this.cooldowns = /* @__PURE__ */ new Map();
+        this.diagnostics = { unlocks: 0, scheduled: 0, musicNotes: 0, steps: 0, activeVoices: 0, playing: false, enabled: this.enabled, level: 1 };
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) {
+            this.stopAll();
+            this.playing = false;
+            this.diagnostics.playing = false;
+            this.nextBeat = 0;
+          }
+        });
+      }
+      // Call only from direct gesture handlers. Synthesis never opens audio.
+      unlock() {
+        if (!this.enabled || document.hidden) return;
+        try {
+          if (!this.ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            this.ctx = new AC();
+            this.master = this.ctx.createGain();
+            this.master.gain.value = 0.68;
+            this.master.connect(this.ctx.destination);
+            this.diagnostics.unlocks++;
+          }
+          if (this.ctx.state === "suspended") this.ctx.resume().catch(() => {
+          });
+        } catch {
+        }
+      }
+      setEnabled(value) {
+        this.enabled = Boolean(value);
+        this.diagnostics.enabled = this.enabled;
+        try {
+          localStorage.setItem("karambe-audio-enabled", this.enabled ? "1" : "0");
+        } catch {
+        }
+        if (this.master) {
+          this.master.gain.cancelScheduledValues(this.ctx.currentTime);
+          this.master.gain.value = this.enabled ? 0.68 : 0;
+          this.master.gain.setValueAtTime(this.enabled ? 0.68 : 0, this.ctx.currentTime);
+        }
+        if (!this.enabled) this.stopAll();
+        this.nextBeat = 0;
+      }
+      stopAll() {
+        for (const voice of [...this.voices]) {
+          try {
+            voice.source.stop();
+          } catch {
+          }
+          voice.source.disconnect();
+          voice.amp.disconnect();
+        }
+        this.voices.clear();
+        this.diagnostics.activeVoices = 0;
+      }
+      available() {
+        return this.enabled && !document.hidden && this.ctx?.state === "running" && this.voices.size < 48;
+      }
+      track(source, amp, at, duration) {
+        const voice = { source, amp };
+        this.voices.add(voice);
+        this.diagnostics.scheduled++;
+        this.diagnostics.activeVoices = this.voices.size;
+        source.onended = () => {
+          source.disconnect();
+          amp.disconnect();
+          this.voices.delete(voice);
+          this.diagnostics.activeVoices = this.voices.size;
+        };
+        source.start(at);
+        source.stop(at + duration + 0.025);
+      }
+      tone(freq = 440, duration = 0.08, type = "square", gain = 0.045, endFreq = null, delay = 0) {
+        if (!this.available()) return;
+        const at = this.ctx.currentTime + Math.max(0, delay);
+        duration = Math.max(0.025, duration);
+        const osc = this.ctx.createOscillator();
+        const amp = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(Math.max(20, freq), at);
+        if (endFreq) osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), at + duration);
+        amp.gain.setValueAtTime(1e-4, at);
+        amp.gain.exponentialRampToValueAtTime(Math.max(1e-4, gain), at + 6e-3);
+        amp.gain.exponentialRampToValueAtTime(1e-4, at + duration);
+        osc.connect(amp).connect(this.master);
+        this.track(osc, amp, at, duration);
+      }
+      noise(duration = 0.12, gain = 0.035, delay = 0) {
+        if (!this.available()) return;
+        const at = this.ctx.currentTime + Math.max(0, delay);
+        const n = Math.max(1, Math.floor(this.ctx.sampleRate * duration));
+        const buffer = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        let seed = 19429;
+        for (let i = 0; i < n; i++) {
+          seed = Math.imul(seed, 1664525) + 1013904223 >>> 0;
+          data[i] = (seed / 4294967296 * 2 - 1) * (1 - i / n);
+        }
+        const source = this.ctx.createBufferSource();
+        const amp = this.ctx.createGain();
+        source.buffer = buffer;
+        amp.gain.setValueAtTime(gain, at);
+        source.connect(amp).connect(this.master);
+        this.track(source, amp, at, duration);
+      }
+      limited(name, interval, effect) {
+        if (!this.available()) return;
+        const now = this.ctx.currentTime;
+        if (now < (this.cooldowns.get(name) || 0)) return;
+        this.cooldowns.set(name, now + interval);
+        effect();
+      }
+      tick(dt, { playing = false, level = 1 } = {}) {
+        const active = Boolean(playing && this.enabled && !document.hidden);
+        const nextLevel = Math.max(1, Math.min(3, level || 1));
+        if (this.playing && !active) this.stopAll();
+        if (nextLevel !== this.level) {
+          this.beat = 0;
+          this.nextBeat = 0;
+        }
+        this.level = nextLevel;
+        this.playing = active;
+        this.diagnostics.playing = active;
+        this.diagnostics.level = this.level;
+        if (!active || !this.available()) {
+          this.nextBeat = 0;
+          return;
+        }
+        const now = this.ctx.currentTime;
+        const spacing = 60 / [108, 116, 124][this.level - 1] / 2;
+        if (!this.nextBeat || this.nextBeat < now - 0.15) this.nextBeat = now + 0.015;
+        for (let count = 0; count < 2 && this.nextBeat < now + 0.085; count++) {
+          const delay = Math.max(0, this.nextBeat - now);
+          const phrase = [0, 7, 12, 9, 7, 4, 2, 7, 0, 4, 9, 12, 7, 2, 4, 7];
+          const roots = [48, 53, 55, 48];
+          const root = roots[Math.floor(this.beat / 16) % roots.length];
+          const note = root + 12 + phrase[this.beat % phrase.length];
+          const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
+          if (this.beat % 2 === 0 || this.level > 1) {
+            this.tone(hz(note), 0.16, "triangle", 0.026, null, delay);
+            this.diagnostics.musicNotes++;
+          }
+          if (this.beat % 4 === 0) {
+            this.tone(hz(root - 12), 0.25, "sine", 0.048, null, delay);
+            this.tone(110, 0.11, "sine", 0.037, 45, delay);
+          }
+          if (this.beat % 4 === 2) this.noise(0.045, 0.014, delay);
+          if (this.level === 3 && this.beat % 2 === 1) this.noise(0.022, 8e-3, delay);
+          this.beat++;
+          this.diagnostics.steps++;
+          this.nextBeat += spacing;
+        }
+      }
+      jump() {
+        this.tone(235, 0.11, "square", 0.032, 420);
+      }
+      noJump() {
+        this.limited("warning", 0.35, () => this.tone(115, 0.12, "triangle", 0.05, 75));
+      }
+      pickup() {
+        this.tone(360, 0.07, "square", 0.028, 510);
+      }
+      drop() {
+        this.tone(145, 0.08, "triangle", 0.045, 95);
+      }
+      fillTick() {
+        this.tone(650, 0.035, "sine", 0.022, 710);
+      }
+      filled() {
+        this.tone(420, 0.12, "triangle", 0.05, 720);
+        this.tone(720, 0.14, "triangle", 0.045, 930, 0.07);
+      }
+      pour() {
+        this.tone(510, 0.13, "sine", 0.045, 310);
+      }
+      score() {
+        this.tone(520, 0.12, "triangle", 0.05, 780);
+        this.tone(780, 0.16, "triangle", 0.045, 1040, 0.09);
+      }
+      block() {
+        this.noise(0.06, 0.04);
+        this.tone(220, 0.09, "square", 0.04, 95);
+      }
+      hit() {
+        this.noise(0.14, 0.045);
+        this.tone(90, 0.18, "sawtooth", 0.035, 55);
+      }
+      stomp() {
+        this.tone(165, 0.08, "square", 0.04, 80);
+      }
+      crack() {
+        this.noise(0.16, 0.04);
+      }
+      sunset() {
+        this.tone(220, 0.45, "triangle", 0.045, 110);
+      }
+      step() {
+        this.limited("step", 0.17, () => this.noise(0.025, 0.011));
+      }
+      land() {
+        this.limited("land", 0.1, () => this.tone(95, 0.07, "triangle", 0.03, 55));
+      }
+      retry() {
+        this.tone(196, 0.07, "triangle", 0.04);
+        this.tone(294, 0.09, "triangle", 0.035, null, 0.08);
+      }
+      menu() {
+        this.tone(392, 0.045, "sine", 0.035, 520);
+      }
+      rolling() {
+        this.limited("rolling", 0.24, () => this.noise(0.055, 9e-3));
+      }
+      collapse() {
+        this.noise(0.25, 0.048);
+        this.tone(120, 0.24, "triangle", 0.04, 35);
+      }
+      crush() {
+        this.noise(0.07, 0.025);
+        this.tone(185, 0.1, "triangle", 0.05, 65);
+      }
+      clear() {
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => this.tone(f, 0.2, "triangle", 0.04, null, i * 0.085));
+      }
+    }
+    class Game {
+      constructor(canvas2) {
+        this.canvas = canvas2;
+        this.ctx = canvas2.getContext("2d", { alpha: false });
+        this.sound = new SoundBank();
+        this.state = "ready";
+        this.last = performance.now();
+        this.accum = 0;
+        this.input = { left: false, right: false };
+        this.canPress = null;
+        this.cancelControlTouches = null;
+        this.platforms = [
+          { x1: 30, y1: 168, x2: 420, y2: 208, downhill: 1 },
+          { x1: 25, y1: 338, x2: 420, y2: 298, downhill: -1 },
+          { x1: 75, y1: 447, x2: 420, y2: 487, downhill: 1 },
+          { x1: 25, y1: 578, x2: 385, y2: 538, downhill: -1 },
+          { x1: 35, y1: 652, x2: 385, y2: 692, downhill: 1 },
+          { x1: 35, y1: 792, x2: 420, y2: 747, downhill: -1 }
+        ];
+        try {
+          const stored = JSON.parse(localStorage.getItem("karambe-water-run-best-times") || "[]");
+          this.bestTimes = Array.isArray(stored) ? stored.slice(0, LEVELS.length) : [];
+          this.bestTotal = Number(localStorage.getItem("karambe-water-run-best-total") || 0);
+          this.fullRunCompleted = localStorage.getItem("karambe-water-run-full-clear") === "1";
+        } catch {
+          this.bestTimes = [];
+          this.bestTotal = 0;
+          this.fullRunCompleted = false;
+        }
+        this.runMode = "full";
+        this.resize();
+        this.reset();
+        requestAnimationFrame((t) => this.frame(t));
+      }
+      reset() {
+        this.level = 1;
+        this.score = 0;
+        this.levelResults = [];
+        this.totalTime = 0;
+        this.stats = { rocks: 0, snakes: 0, falls: 0, hits: 0, deliveries: 0, retries: 0 };
+        this.resetLevel();
+      }
+      resetLevel() {
+        this.levelCans = 0;
+        this.elapsed = 0;
+        this.levelFinishTime = 0;
+        this.canStartElapsed = 0;
+        this.canSplits = [];
+        this.levelRetries = 0;
+        this.tripProgress = 0;
+        this.respawning = false;
+        this.respawnTimer = 0;
+        this.particles = [];
+        this.scoreFlash = 0;
+        this.accum = 0;
+        this.resetCurrentCan(false, `LEVEL ${this.level} — ${this.levelConfig().name}`);
+      }
+      resetCurrentCan(fromHit = false, message = "") {
+        this.cancelControlTouches?.("current-can-reset");
+        this.attemptVersion = (this.attemptVersion || 0) + 1;
+        this.player = {
+          x: 62,
+          y: this.surfaceY(0, 62),
+          prevY: 0,
+          vx: 0,
+          vy: 0,
+          platform: 0,
+          grounded: true,
+          facing: 1,
+          climbing: null,
+          stun: 0,
+          invuln: 0,
+          blocking: false,
+          fullCanWarning: 0,
+          bridgeWarning: 0,
+          fallDrop: false,
+          step: 0,
+          dead: false,
+          jumpBuffer: 0,
+          coyote: 0.1,
+          connectorLock: null
+        };
+        this.can = { held: true, full: false, platform: 0, x: 62, fill: 0, pour: 0, vx: 0, dropLift: 0, hitFlash: 0 };
+        this.bridge = { state: "solid", timer: 0, shake: 0 };
+        this.resetHazards();
+        this.canPress = null;
+        this.input.left = false;
+        this.input.right = false;
+        this.tripProgress = 0;
+        this.respawning = false;
+        this.respawnTimer = 0;
+        this.message = message || (fromHit ? `TRY AGAIN — CAN ${this.levelCans + 1} OF ${CANS_PER_LEVEL}` : "");
+        this.messageTimer = this.message ? 1.25 : 0;
+        this.setScoreText();
+      }
+      resetHazards() {
+        this.snakes = [
+          { platform: 1, x: 235, startX: 235, min: 170, max: 295, dir: 1, startDir: 1, speed: 22, squashed: false, respawn: 0, respawnDelay: 5, cooldown: 0, phase: 0 },
+          { platform: LOWER_BYPASS, x: 235, startX: 235, min: 165, max: 305, dir: -1, startDir: -1, speed: 25, squashed: false, respawn: 0, respawnDelay: 5.4, cooldown: 0, phase: 1.8 }
+        ];
+        this.rocks = [];
+        this.chimp = { phase: "idle", timer: ROCK_PATTERN[0].delay, patternIndex: 0, targetX: ROCK_PATTERN[0].target, blink: 0 };
+      }
+      levelConfig() {
+        return LEVELS[this.level - 1];
+      }
+      hasRocks() {
+        return this.levelConfig().rocks;
+      }
+      hasSnakes() {
+        return this.levelConfig().snakes;
+      }
+      canSelectLevels() {
+        return this.fullRunCompleted || BUILD_LEVEL_SELECT;
+      }
+      start() {
+        this.runMode = "full";
+        this.reset();
+        this.state = "playing";
+        this.last = performance.now();
+        this.sound.unlock();
+      }
+      startLevel(levelNumber) {
+        if (!this.canSelectLevels()) return;
+        const selected = clamp(Math.round(levelNumber), 1, LEVELS.length);
+        this.runMode = "single";
+        this.level = selected;
+        this.score = 0;
+        this.levelResults = [];
+        this.totalTime = 0;
+        this.stats = { rocks: 0, snakes: 0, falls: 0, hits: 0, deliveries: 0, retries: 0 };
+        this.resetLevel();
+        this.state = "playing";
+        this.last = performance.now();
+        this.sound.unlock();
+      }
+      advanceLevel() {
+        if (this.level >= LEVELS.length) return;
+        this.level++;
+        this.resetLevel();
+        this.state = "playing";
+        this.last = performance.now();
+        this.sound.unlock();
+      }
+      pause() {
+        if (this.state === "playing") {
+          this.cancelControlTouches?.("pause");
+          this.state = "paused";
+          this.sound.tick(0, { playing: false, level: this.level });
+          this.input.left = this.input.right = false;
+          this.player.blocking = false;
+          this.canPress = null;
+        }
+      }
+      resume() {
+        if (this.state === "paused") {
+          this.state = "playing";
+          this.last = performance.now();
+          this.accum = 0;
+          this.sound.unlock();
+        }
+      }
+      completeLevel() {
+        if (this.state !== "playing") return;
+        this.cancelControlTouches?.("level-complete");
+        this.levelFinishTime = this.elapsed;
+        this.tripProgress = 0;
+        this.state = "clearing";
+        this.sound.tick(0, { playing: false, level: this.level });
+        this.input.left = this.input.right = false;
+        this.player.blocking = false;
+        this.canPress = null;
+        this.sound.clear();
+        setTimeout(() => this.finishLevel(), 420);
+      }
+      finishLevel() {
+        const time = this.levelFinishTime || this.elapsed;
+        const result = {
+          level: this.level,
+          time,
+          splits: this.canSplits.slice(0, CANS_PER_LEVEL),
+          retries: this.levelRetries
+        };
+        this.levelResults[this.level - 1] = result;
+        const index = this.level - 1;
+        if (!this.bestTimes[index] || time < this.bestTimes[index]) {
+          this.bestTimes[index] = time;
+          try {
+            if (!BUILD_LEVEL_SELECT) localStorage.setItem("karambe-water-run-best-times", JSON.stringify(this.bestTimes));
+          } catch {
+          }
+        }
+        if (this.runMode === "single") {
+          this.state = "singleComplete";
+          showOverlay("singleComplete");
+          return;
+        }
+        if (this.level < LEVELS.length) {
+          this.state = "between";
+          showOverlay("levelComplete");
+        } else {
+          this.state = "over";
+          this.totalTime = this.levelResults.reduce((sum, item) => sum + (item?.time || 0), 0);
+          if (!this.bestTotal || this.totalTime < this.bestTotal) {
+            this.bestTotal = this.totalTime;
+            try {
+              if (!BUILD_LEVEL_SELECT) localStorage.setItem("karambe-water-run-best-total", String(this.bestTotal));
+            } catch {
+            }
+          }
+          this.fullRunCompleted = true;
+          try {
+            if (!BUILD_LEVEL_SELECT) localStorage.setItem("karambe-water-run-full-clear", "1");
+          } catch {
+          }
+          showOverlay("over");
+        }
+      }
+      resize() {
+        const rect = this.canvas.getBoundingClientRect();
+        const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+        this.canvas.width = Math.max(1, Math.round(rect.width * dpr));
+        this.canvas.height = Math.max(1, Math.round(rect.height * dpr));
+        this.scaleX = this.canvas.width / WORLD_W;
+        this.scaleY = this.canvas.height / WORLD_H;
+      }
+      surfaceY(index, x) {
+        const p = this.platforms[index];
+        const t = clamp((x - p.x1) / (p.x2 - p.x1), 0, 1);
+        return lerp(p.y1, p.y2, t);
+      }
+      bridgeIsOpenAt(x) {
+        return this.bridge.state === "collapsed" && x > BRIDGE_X1 && x < BRIDGE_X2;
+      }
+      frame(now) {
+        const wallDt = Math.max(0, (now - this.last) / 1e3 || 0);
+        const dt = Math.min(0.05, wallDt);
+        this.last = now;
+        if (this.state === "playing") {
+          this.elapsed += wallDt - dt;
+          this.accum += dt;
+          let steps = 0;
+          while (this.accum >= FIXED_STEP && steps < 8 && this.state === "playing") {
+            this.update(FIXED_STEP);
+            this.accum -= FIXED_STEP;
+            steps++;
+          }
+          if (steps >= 8) this.accum = 0;
+        } else {
+          this.accum = 0;
+        }
+        this.sound.tick(dt, { playing: this.state === "playing", level: this.level });
+        this.render();
+        requestAnimationFrame((t) => this.frame(t));
+      }
+      update(dt) {
+        this.controls?.flush();
+        const attempt = this.attemptVersion;
+        this.elapsed += dt;
+        this.updateMessage(dt);
+        if (this.respawning) {
+          this.respawnTimer -= dt;
+          this.updateParticles(dt);
+          if (this.respawnTimer <= 0) {
+            this.resetCurrentCan(true, `TRY AGAIN — CAN ${this.levelCans + 1} OF ${CANS_PER_LEVEL}`);
+          }
+          return;
+        }
+        if (this.hasRocks()) this.updateChimp(dt);
+        else this.chimp.blink += dt;
+        this.updateBridge(dt);
+        if (attempt !== this.attemptVersion) return;
+        if (this.hasSnakes()) this.updateSnakes(dt);
+        this.updatePlayer(dt);
+        if (this.respawning || attempt !== this.attemptVersion) return;
+        this.updateCanAction(dt);
+        this.updateLooseCan(dt);
+        if (this.respawning || attempt !== this.attemptVersion) return;
+        if (this.hasRocks()) this.updateRocks(dt);
+        if (this.respawning || attempt !== this.attemptVersion) return;
+        this.updateProgress();
+        this.updateParticles(dt);
+        this.scoreFlash = Math.max(0, this.scoreFlash - dt);
+      }
+      updateMessage(dt) {
+        if (this.messageTimer > 0) this.messageTimer -= dt;
+        if (this.player.fullCanWarning > 0) this.player.fullCanWarning -= dt;
+        if (this.player.bridgeWarning > 0) this.player.bridgeWarning -= dt;
+      }
+      currentLevelProgress() {
+        const activeTrip = this.levelCans >= CANS_PER_LEVEL ? 0 : this.tripProgress;
+        return clamp((this.levelCans + activeTrip) / CANS_PER_LEVEL, 0, 1);
+      }
+      estimateTripProgress() {
+        const p = this.player;
+        const c = this.can;
+        const platform = c.held ? p.platform : c.platform;
+        const x = c.held ? p.x : c.x;
+        const n = (value, start, end) => clamp((value - start) / (end - start), 0, 1);
+        let progress = 0;
+        if (!c.full) {
+          if (platform === 0) progress = 0.18 * n(x, 62, 420);
+          else if (platform === 1) progress = 0.18 + 0.16 * n(x, 420, 75);
+          else if (platform === 2) progress = 0.34 + 0.12 * n(x, 75, 420);
+          else if (platform === BOTTOM_PLATFORM) progress = 0.46 + 0.02 * n(x, 420, 70);
+          else if (platform === LOWER_BYPASS) progress = 0.39;
+          else if (platform === UPPER_BYPASS) progress = 0.31;
+          if (c.fill > 0) progress = Math.max(progress, 0.48 + 0.02 * c.fill);
+        } else {
+          if (platform === BOTTOM_PLATFORM) progress = 0.5 + 0.1 * n(x, 70, 35);
+          else if (platform === LOWER_BYPASS) progress = 0.6 + 0.13 * n(x, 35, 385);
+          else if (platform === UPPER_BYPASS) progress = 0.73 + 0.11 * n(x, 385, 25);
+          else if (platform === 1) progress = 0.84 + 0.1 * n(x, 25, 420);
+          else if (platform === 0) progress = 0.94 + 0.02 * n(x, 420, 65);
+          else if (platform === 2) progress = 0.52;
+          if (c.pour > 0) progress = Math.max(progress, 0.96 + 0.04 * c.pour);
+        }
+        return clamp(progress, 0, 1);
+      }
+      updateProgress() {
+        this.tripProgress = Math.max(this.tripProgress, this.estimateTripProgress());
+      }
+      updateChimp(dt) {
+        const c = this.chimp;
+        c.blink += dt;
+        c.timer -= dt;
+        const pattern = ROCK_PATTERN[c.patternIndex % ROCK_PATTERN.length];
+        if (c.phase === "idle" && c.timer <= 0) {
+          c.phase = "windup";
+          c.timer = 0.58;
+          c.targetX = pattern.target;
+        } else if (c.phase === "windup" && c.timer <= 0) {
+          this.throwRock(c.targetX);
+          c.phase = "recover";
+          c.timer = 0.32;
+        } else if (c.phase === "recover" && c.timer <= 0) {
+          c.patternIndex = (c.patternIndex + 1) % ROCK_PATTERN.length;
+          c.phase = "idle";
+          c.timer = ROCK_PATTERN[c.patternIndex].delay;
+        }
+      }
+      throwRock(targetX) {
+        const targetY = this.surfaceY(0, targetX) - 12;
+        this.rocks.push({
+          state: "thrown",
+          t: 0,
+          duration: 0.65,
+          sx: 421,
+          sy: 91,
+          tx: targetX,
+          ty: targetY,
+          x: 421,
+          y: 91,
+          platform: 0,
+          vx: 0,
+          vy: 0,
+          r: 10.5,
+          spin: 0,
+          dead: false
+        });
+        this.sound.tone(185, 0.08, "triangle", 0.035, 125);
+      }
+      updateBridge(dt) {
+        const b = this.bridge;
+        b.shake += dt;
+        if (b.state === "warning") {
+          b.timer -= dt;
+          if (b.timer <= 0) this.collapseBridge();
+        } else if (b.state === "collapsed") {
+          b.timer -= dt;
+          if (b.timer <= 0) {
+            b.state = "rebuilding";
+            b.timer = 0.65;
+            this.sound.tone(260, 0.09, "square", 0.035, 410);
+          }
+        } else if (b.state === "rebuilding") {
+          b.timer -= dt;
+          if (b.timer <= 0) b.state = "solid";
+        }
+      }
+      triggerBridge() {
+        if (this.bridge.state !== "solid") return;
+        if (this.can.held && this.can.full) return;
+        this.bridge.state = "warning";
+        this.bridge.timer = 0.78;
+        this.sound.crack();
+      }
+      collapseBridge() {
+        const b = this.bridge;
+        b.state = "collapsed";
+        b.timer = 4.1;
+        this.sound.collapse();
+        this.addDust((BRIDGE_X1 + BRIDGE_X2) / 2, this.surfaceY(2, 260), 15);
+        const p = this.player;
+        const playerCaught = p.platform === 2 && p.x > BRIDGE_X1 && p.x < BRIDGE_X2 && p.grounded;
+        const canCaught = !this.can.held && this.can.platform === 2 && this.can.x > BRIDGE_X1 && this.can.x < BRIDGE_X2;
+        if (playerCaught || canCaught) {
+          this.stats.falls++;
+          this.failCurrentCan(canCaught && this.can.full ? "FULL CAN BROKE THE WALKWAY" : "WALKWAY FALL!");
+        }
+      }
+      updateSnakes(dt) {
+        this.crushSnakeWithFullCan();
+        for (const s of this.snakes) {
+          s.phase += dt * 5;
+          s.cooldown = Math.max(0, s.cooldown - dt);
+          if (s.squashed) {
+            s.respawn -= dt;
+            if (s.respawn <= 0) {
+              s.x = s.startX;
+              s.squashed = false;
+              s.respawn = 0;
+              s.cooldown = 0.8;
+              s.dir = s.startDir;
+              const sy = this.surfaceY(s.platform, s.x);
+              this.addBurst(s.x, sy - 7, 7, "#d8e94b");
+              if (Math.abs(this.player.x - s.x) < 130 && this.player.platform === s.platform) {
+                this.message = "THE SNAKE IS BACK";
+                this.messageTimer = 0.9;
+              }
+            }
+            continue;
+          }
+          s.x += s.dir * s.speed * dt;
+          if (s.x <= s.min) {
+            s.x = s.min;
+            s.dir = 1;
+          }
+          if (s.x >= s.max) {
+            s.x = s.max;
+            s.dir = -1;
+          }
+        }
+      }
+      updatePlayer(dt) {
+        const attempt = this.attemptVersion;
+        const p = this.player;
+        p.prevY = p.y;
+        p.invuln = Math.max(0, p.invuln - dt);
+        p.stun = Math.max(0, p.stun - dt);
+        p.jumpBuffer = Math.max(0, p.jumpBuffer - dt);
+        if (p.grounded) p.coyote = 0.1;
+        else p.coyote = Math.max(0, p.coyote - dt);
+        if (p.climbing) {
+          const c = p.climbing;
+          c.t += dt / c.duration;
+          const t = clamp(c.t, 0, 1);
+          const eased = t * t * (3 - 2 * t);
+          p.x = c.x;
+          p.y = lerp(c.y1, c.y2, eased);
+          p.step += dt * 10;
+          if (t >= 1) {
+            p.platform = c.to;
+            p.y = this.surfaceY(c.to, c.x);
+            p.climbing = null;
+            p.grounded = true;
+            p.vx = 0;
+            p.coyote = 0.1;
+            p.connectorLock = { to: c.from, x: c.x };
+          }
+          this.syncHeldCan();
+          return;
+        }
+        const move = (this.input.right ? 1 : 0) - (this.input.left ? 1 : 0);
+        const working = this.isWorkingCan();
+        if (move && p.stun <= 0 && !working) p.facing = move;
+        const speed = this.can.held && this.can.full ? 152 : 200;
+        const target = p.stun > 0 || working ? 0 : move * speed;
+        p.vx = approach(p.vx, target, (p.grounded ? 1240 : 600) * dt);
+        if (!move && p.grounded) p.vx = approach(p.vx, 0, 1520 * dt);
+        const oldX = p.x;
+        p.x += p.vx * dt;
+        const oldStep = Math.floor(p.step / 3);
+        p.step += Math.abs(p.vx) * dt * 0.11;
+        if (p.grounded && Math.floor(p.step / 3) !== oldStep) this.sound.step();
+        const pf = this.platforms[p.platform];
+        p.x = clamp(p.x, pf.x1, pf.x2);
+        if (p.connectorLock && Math.abs(p.x - p.connectorLock.x) > 18) p.connectorLock = null;
+        this.blockFullCanAtBridge(oldX);
+        if (p.grounded && p.stun <= 0 && !working) this.tryConnector(move);
+        if (p.climbing) {
+          this.syncHeldCan();
+          return;
+        }
+        if (p.jumpBuffer > 0 && !(this.can.held && this.can.full) && p.coyote > 0 && p.stun <= 0 && !working) {
+          p.jumpBuffer = 0;
+          p.coyote = 0;
+          p.grounded = false;
+          p.vy = -355;
+          this.sound.jump();
+        }
+        if (!p.grounded) {
+          p.vy += 890 * dt;
+          p.y += p.vy * dt;
+        } else {
+          p.y = this.surfaceY(p.platform, p.x);
+        }
+        let hasGround = true;
+        if (p.platform === 2 && this.bridgeIsOpenAt(p.x)) hasGround = false;
+        if (p.platform === 2 && p.x > BRIDGE_X1 && p.x < BRIDGE_X2 && p.grounded) this.triggerBridge();
+        const surf = this.surfaceY(p.platform, p.x);
+        if (!p.grounded && hasGround && p.vy >= 0 && p.y >= surf) {
+          p.y = surf;
+          p.vy = 0;
+          p.grounded = true;
+          p.coyote = 0.1;
+          this.sound.land();
+        }
+        if (p.platform === 2 && !p.grounded && this.bridgeIsOpenAt(p.x) && p.y >= surf + 38) {
+          this.stats.falls++;
+          this.failCurrentCan("WALKWAY FALL!");
+          return;
+        }
+        if (this.hasSnakes()) this.checkSnakeCollisions();
+        if (this.respawning || attempt !== this.attemptVersion) return;
+        this.syncHeldCan();
+      }
+      blockFullCanAtBridge(oldX) {
+        const p = this.player;
+        if (p.platform !== 2 || !p.grounded || !this.can.held || !this.can.full) return;
+        const leftStop = BRIDGE_X1 - 14;
+        const rightStop = BRIDGE_X2 + 14;
+        let blocked = false;
+        if (oldX <= leftStop && p.x > leftStop) {
+          p.x = leftStop;
+          blocked = true;
+        } else if (oldX >= rightStop && p.x < rightStop) {
+          p.x = rightStop;
+          blocked = true;
+        } else if (p.x > leftStop && p.x < rightStop) {
+          p.x = p.facing > 0 ? leftStop : rightStop;
+          blocked = true;
+        }
+        if (blocked) {
+          p.vx = 0;
+          if (p.bridgeWarning <= 0) {
+            p.bridgeWarning = 1.2;
+            this.message = "FULL CAN TOO HEAVY — TAKE THE LONG WAY";
+            this.messageTimer = 1.5;
+            this.sound.noJump();
+          }
+        }
+      }
+      warnLongRoute() {
+        const p = this.player;
+        p.vx = 0;
+        if (p.bridgeWarning <= 0) {
+          p.bridgeWarning = 1.2;
+          this.message = "FULL CAN — LONG WAY STARTS BY THE WATER";
+          this.messageTimer = 1.5;
+          this.sound.noJump();
+        }
+      }
+      tryConnector(move) {
+        const p = this.player;
+        const fullLoad = this.can.held && this.can.full;
+        let to = null;
+        let x = p.x;
+        if (p.platform === 0 && move > 0 && p.x >= 417) {
+          to = 1;
+          x = 420;
+        } else if (p.platform === 1 && move > 0 && p.x >= 417) {
+          to = 0;
+          x = 420;
+        } else if (p.platform === 1 && move < 0 && p.x <= 28) {
+          to = UPPER_BYPASS;
+          x = 25;
+        } else if (p.platform === 1 && move < 0 && p.x <= 78 && !fullLoad) {
+          to = 2;
+          x = 75;
+        } else if (p.platform === 2 && move < 0 && p.x <= 78) {
+          to = 1;
+          x = 75;
+        } else if (p.platform === 2 && move > 0 && p.x >= 417) {
+          to = BOTTOM_PLATFORM;
+          x = 420;
+        } else if (p.platform === UPPER_BYPASS && move < 0 && p.x <= 28) {
+          to = 1;
+          x = 25;
+        } else if (p.platform === UPPER_BYPASS && move > 0 && p.x >= 382) {
+          to = LOWER_BYPASS;
+          x = 385;
+        } else if (p.platform === LOWER_BYPASS && move < 0 && p.x <= 38) {
+          to = BOTTOM_PLATFORM;
+          x = 35;
+        } else if (p.platform === LOWER_BYPASS && move > 0 && p.x >= 382) {
+          to = UPPER_BYPASS;
+          x = 385;
+        } else if (p.platform === BOTTOM_PLATFORM && move < 0 && p.x <= 38) {
+          to = LOWER_BYPASS;
+          x = 35;
+        } else if (p.platform === BOTTOM_PLATFORM && move > 0 && p.x >= 417) {
+          if (fullLoad) {
+            this.warnLongRoute();
+            return;
+          }
+          to = 2;
+          x = 420;
+        }
+        if (to === null) return;
+        if (p.connectorLock && to === p.connectorLock.to) return;
+        const y1 = this.surfaceY(p.platform, x);
+        const y2 = this.surfaceY(to, x);
+        p.climbing = {
+          from: p.platform,
+          to,
+          x,
+          y1,
+          y2,
+          t: 0,
+          duration: (fullLoad ? 0.66 : 0.52) + Math.abs(y2 - y1) / 390
+        };
+        p.grounded = false;
+        p.vx = 0;
+      }
+      jump() {
+        if (this.state !== "playing" || this.respawning) return;
+        this.sound.unlock();
+        const p = this.player;
+        if (p.climbing || p.stun > 0) return;
+        if (this.can.held && this.can.full) {
+          if (p.grounded) {
+            p.fullCanWarning = 1.5;
+            this.message = "SET THE FULL CAN DOWN TO JUMP";
+            this.messageTimer = 1.5;
+            this.sound.noJump();
+          }
+          return;
+        }
+        p.jumpBuffer = 0.12;
+      }
+      squashSnake(s, byFullCan = false) {
+        if (s.squashed) return false;
+        const sy = this.surfaceY(s.platform, s.x);
+        s.squashed = true;
+        s.respawn = s.respawnDelay;
+        s.cooldown = 0;
+        this.stats.snakes++;
+        this.addBurst(s.x, sy - 8, byFullCan ? 12 : 8, byFullCan ? "#7ed5e8" : "#d5e748");
+        if (byFullCan) this.sound.crush();
+        else this.sound.stomp();
+        this.vibrate(byFullCan ? 28 : 16);
+        this.message = byFullCan ? "FULL CAN CRUSHED THE SNAKE" : "SNAKE SQUASHED";
+        this.messageTimer = byFullCan ? 1.1 : 0.8;
+        return true;
+      }
+      crushSnakeWithFullCan(whileLowering = false) {
+        if (!this.hasSnakes()) return false;
+        const c = this.can;
+        if (c.held || !c.full || !whileLowering && c.dropLift > 0.18) return false;
+        for (const s of this.snakes) {
+          if (s.squashed || s.platform !== c.platform) continue;
+          if (Math.abs(c.x - s.x) <= 27) {
+            c.vx = 0;
+            return this.squashSnake(s, true);
+          }
+        }
+        return false;
+      }
+      checkSnakeCollisions() {
+        if (!this.hasSnakes()) return;
+        const p = this.player;
+        if (p.invuln > 0 || p.climbing) return;
+        for (const s of this.snakes) {
+          if (s.squashed || s.cooldown > 0 || s.platform !== p.platform) continue;
+          const sy = this.surfaceY(s.platform, s.x);
+          const dx = Math.abs(p.x - s.x);
+          if (dx > 23) continue;
+          if (!p.grounded && p.vy > 0 && p.prevY < sy - 8 && p.y >= sy - 20) {
+            if (this.squashSnake(s, false)) {
+              p.y = sy - 23;
+              p.vy = -245;
+            }
+            continue;
+          }
+          if (p.grounded && dx < 20) {
+            s.cooldown = 1.1;
+            this.hitPlayer(s.x < p.x ? 1 : -1, "SNAKE!");
+            return;
+          }
+        }
+      }
+      beginCanAction() {
+        if (this.state !== "playing" || this.canPress) return;
+        this.sound.unlock();
+        this.canPress = { time: 0, context: null, consumed: false, ticks: 0 };
+      }
+      endCanAction(commitTap = true) {
+        if (!this.canPress) return;
+        const press = this.canPress;
+        const quick = commitTap && press.time < 0.16 && !press.consumed && !press.worked;
+        this.player.blocking = false;
+        this.canPress = null;
+        if (quick) this.tapCan();
+      }
+      cancelCanAction() {
+        this.endCanAction(false);
+      }
+      isWorkingCan() {
+        return !!(this.canPress && (this.canPress.context === "fill" || this.canPress.context === "pour") && this.canPress.time > 0.12);
+      }
+      canContext() {
+        const p = this.player;
+        if (!this.can.held || !p.grounded || p.climbing) return null;
+        if (!this.can.full && p.platform === BOTTOM_PLATFORM && p.x < 112) return "fill";
+        if (this.can.full && p.platform === 0 && p.x < 112) return "pour";
+        return "block";
+      }
+      updateCanAction(dt) {
+        if (!this.canPress) {
+          this.can.fill = 0;
+          this.can.pour = 0;
+          this.player.blocking = false;
+          return;
+        }
+        const press = this.canPress;
+        press.time += dt;
+        press.context = this.canContext();
+        if (press.context === "fill") {
+          this.player.blocking = false;
+          if (press.time > 0.12) {
+            press.worked = true;
+            this.can.fill = clamp(this.can.fill + dt / 1.15, 0, 1);
+            const tick = Math.floor(this.can.fill * 8);
+            if (tick > press.ticks) {
+              press.ticks = tick;
+              this.sound.fillTick();
+            }
+            if (this.can.fill >= 1 && press.completedContext !== "fill") {
+              this.can.full = true;
+              press.consumed = true;
+              press.completedContext = "fill";
+              this.can.fill = 0;
+              this.sound.filled();
+              this.message = "FULL CAN — TAKE THE LONG PATH LEFT";
+              this.messageTimer = 2.4;
+            }
+          }
+        } else if (press.context === "pour") {
+          this.player.blocking = false;
+          if (press.time > 0.12) {
+            press.worked = true;
+            this.can.pour = clamp(this.can.pour + dt / 0.9, 0, 1);
+            if (this.can.pour >= 1 && press.completedContext !== "pour") {
+              press.consumed = true;
+              press.completedContext = "pour";
+              this.deliverCan();
+            }
+          }
+        } else if (press.context === "block") {
+          this.can.fill = 0;
+          this.can.pour = 0;
+          this.player.blocking = press.time > 0.16 && this.can.held;
+        } else {
+          this.player.blocking = false;
+          this.can.fill = 0;
+          this.can.pour = 0;
+        }
+      }
+      tapCan() {
+        const p = this.player;
+        if (p.climbing || p.stun > 0) return;
+        if (this.can.held) {
+          this.forceDropCan();
+        } else if (this.can.platform === p.platform && Math.abs(this.can.x - p.x) < 39 && p.grounded) {
+          this.can.held = true;
+          this.can.x = p.x;
+          this.can.platform = p.platform;
+          this.can.vx = 0;
+          this.can.dropLift = 0;
+          this.sound.pickup();
+        } else {
+          this.message = "MOVE NEXT TO THE JERRY CAN";
+          this.messageTimer = 1.1;
+        }
+      }
+      forceDropCan() {
+        const p = this.player;
+        if (!this.can.held) return;
+        const edge = p.facing > 0 ? this.platforms[p.platform].x2 - 9 : this.platforms[p.platform].x1 + 9;
+        const target = p.facing > 0 ? Math.min(p.x + 25, edge) : Math.max(p.x - 25, edge);
+        if ((target - p.x) * p.facing < 10) {
+          this.message = "NO ROOM AHEAD — STEP BACK OR TURN";
+          this.messageTimer = 1.2;
+          this.sound.noJump();
+          return;
+        }
+        this.can.held = false;
+        this.can.platform = p.platform;
+        this.can.x = target;
+        this.can.vx = 0;
+        this.can.dropLift = 1;
+        if (p.platform === 2 && this.bridgeIsOpenAt(this.can.x)) this.can.platform = UPPER_BYPASS;
+        this.crushSnakeWithFullCan(true);
+        this.sound.drop();
+      }
+      syncHeldCan() {
+        if (!this.can.held) return;
+        this.can.platform = this.player.platform;
+        this.can.x = this.player.x;
+        this.can.vx = 0;
+        this.can.dropLift = 0;
+      }
+      updateLooseCan(dt) {
+        const attempt = this.attemptVersion;
+        const c = this.can;
+        c.hitFlash = Math.max(0, c.hitFlash - dt);
+        if (c.held) return;
+        c.dropLift = Math.max(0, c.dropLift - dt * 5.2);
+        if (c.dropLift > 0) return;
+        if (Math.abs(c.vx) > 0.1) {
+          c.x += c.vx * dt;
+          c.vx = approach(c.vx, 0, (c.full ? 150 : 165) * dt);
+          const pf = this.platforms[c.platform];
+          if (c.x <= pf.x1 + 9) {
+            c.x = pf.x1 + 9;
+            c.vx = 0;
+          }
+          if (c.x >= pf.x2 - 9) {
+            c.x = pf.x2 - 9;
+            c.vx = 0;
+          }
+        }
+        if (c.platform === 2 && c.x > BRIDGE_X1 && c.x < BRIDGE_X2) {
+          if (c.full && this.bridge.state !== "collapsed") {
+            this.message = "THE FULL CAN BROKE THROUGH THE WALKWAY";
+            this.messageTimer = 1.4;
+            this.collapseBridge();
+            if (this.respawning || attempt !== this.attemptVersion) return;
+          } else if (this.bridge.state === "collapsed") {
+            c.platform = UPPER_BYPASS;
+            c.x = clamp(c.x, this.platforms[UPPER_BYPASS].x1 + 9, this.platforms[UPPER_BYPASS].x2 - 9);
+            c.vx *= 0.35;
+          }
+        }
+        this.crushSnakeWithFullCan();
+      }
+      deliverCan() {
+        const split = Math.max(0, this.elapsed - this.canStartElapsed);
+        this.canSplits.push(split);
+        this.levelCans++;
+        this.score++;
+        this.stats.deliveries = this.score;
+        this.scoreFlash = 0.7;
+        this.setScoreText();
+        this.sound.pour();
+        this.sound.score();
+        this.addBurst(72, this.surfaceY(0, 72) - 45, 18, "#ffd94e");
+        if (this.levelCans >= CANS_PER_LEVEL) {
+          this.message = "THREE CANS DELIVERED!";
+          this.messageTimer = 1.2;
+          this.completeLevel();
+          return;
+        }
+        this.canStartElapsed = this.elapsed;
+        this.cancelControlTouches?.("can-delivered");
+        this.resetCurrentCan(false, `CAN ${this.levelCans} DELIVERED — GO!`);
+      }
+      setScoreText() {
+        $("score").textContent = `${this.levelCans}/${CANS_PER_LEVEL}`;
+      }
+      rockNext(platform) {
+        return {
+          // Rocks leave the top track through their own visible chute before the
+          // player ladder. The short segment from the chute to x=420 is a real
+          // safe landing pocket for the final climb.
+          0: { exitX: ROCK_TOP_EXIT_X, platform: 1, x: ROCK_TOP_EXIT_X },
+          1: { exitX: 75, platform: 2, x: 75 },
+          2: { exitX: 420, platform: BOTTOM_PLATFORM, x: 420 }
+        }[platform] || null;
+      }
+      startRockConnector(r, fromPlatform, next) {
+        const x = next.x;
+        const y1 = this.surfaceY(fromPlatform, x) - r.r;
+        const y2 = this.surfaceY(next.platform, x) - r.r;
+        r.state = "connector";
+        r.connector = { from: fromPlatform, to: next.platform, x, y1, y2 };
+        r.platform = null;
+        r.x = x;
+        r.y = y1;
+        r.t = 0;
+        r.duration = Math.max(0.24, Math.abs(y2 - y1) / 205);
+        r.vx = 0;
+        r.vy = 0;
+      }
+      dropRockThroughBridge(r) {
+        r.state = "bridgeDrop";
+        r.platform = null;
+        r.connector = null;
+        r.vx = 0;
+        r.vy = 45;
+        r.targetY = this.surfaceY(UPPER_BYPASS, clamp(r.x, this.platforms[UPPER_BYPASS].x1, this.platforms[UPPER_BYPASS].x2)) - r.r;
+      }
+      hitLooseCanWithRock(r) {
+        const c = this.can;
+        c.vx = 0;
+        this.stats.rocks++;
+        c.hitFlash = 0.35;
+        r.dead = true;
+        this.addBurst(r.x, r.y, 9, "#e2bd82");
+        this.sound.block();
+        this.vibrate(18);
+        this.message = c.full ? "FULL CAN STOPPED THE ROCK" : "CAN STOPPED THE ROCK";
+        this.messageTimer = 1;
+      }
+      updateRocks(dt) {
+        const attempt = this.attemptVersion;
+        const p = this.player;
+        for (const r of this.rocks) {
+          if (r.dead) continue;
+          if (r.state === "thrown") {
+            r.t += dt / r.duration;
+            const t = clamp(r.t, 0, 1);
+            r.x = lerp(r.sx, r.tx, t);
+            r.y = lerp(r.sy, r.ty, t) - Math.sin(Math.PI * t) * 86;
+            r.spin += dt * 10;
+            if (t >= 1) {
+              r.state = "rolling";
+              r.platform = 0;
+              r.connector = null;
+              r.x = r.tx;
+              r.y = this.surfaceY(0, r.x) - r.r;
+            }
+          } else if (r.state === "rolling") {
+            const platformIndex = r.platform;
+            const platform = this.platforms[platformIndex];
+            const speed = this.level === 3 ? 94 : 88;
+            const next = this.rockNext(platformIndex);
+            r.vx = platform.downhill * speed;
+            r.x += r.vx * dt;
+            r.spin += r.vx * dt / r.r;
+            if (platformIndex === 2 && this.bridgeIsOpenAt(r.x)) {
+              this.dropRockThroughBridge(r);
+            } else {
+              r.y = this.surfaceY(platformIndex, r.x) - r.r;
+              if (next) {
+                const reachedConnector = platform.downhill > 0 ? r.x >= next.exitX : r.x <= next.exitX;
+                if (reachedConnector) {
+                  r.x = next.exitX;
+                  r.y = this.surfaceY(platformIndex, r.x) - r.r;
+                  this.startRockConnector(r, platformIndex, next);
+                }
+              } else {
+                const atEnd = platform.downhill > 0 ? r.x >= platform.x2 : r.x <= platform.x1;
+                if (atEnd) r.dead = true;
+              }
+            }
+          } else if (r.state === "connector") {
+            const c = r.connector;
+            r.t += dt / r.duration;
+            const t = clamp(r.t, 0, 1);
+            const eased = t * t * (3 - 2 * t);
+            r.x = c.x;
+            r.y = lerp(c.y1, c.y2, eased) - Math.abs(Math.sin(t * Math.PI * 12)) * 2.5;
+            r.spin += dt * 12;
+            if (t >= 1) {
+              r.platform = c.to;
+              r.x = c.x;
+              r.y = this.surfaceY(c.to, c.x) - r.r;
+              r.state = "rolling";
+              r.connector = null;
+              this.addDust(r.x, r.y + r.r, 5);
+              this.sound.rolling();
+            }
+          } else if (r.state === "bridgeDrop") {
+            r.vy += 680 * dt;
+            r.y += r.vy * dt;
+            r.spin += dt * 9;
+            if (r.y >= r.targetY) {
+              r.dead = true;
+              this.addBurst(r.x, r.targetY, 8, "#e2bd82");
+              this.addDust(r.x, r.targetY + r.r, 6);
+              this.sound.tone(90, 0.06, "triangle", 0.022, 60);
+            }
+          }
+          if (!r.dead && !this.can.held && r.state === "rolling" && r.platform === this.can.platform && Math.abs(r.x - this.can.x) < 21) {
+            this.hitLooseCanWithRock(r);
+          }
+          if (!r.dead && (r.state === "rolling" || r.state === "connector")) this.checkRockCollision(r, p);
+          if (attempt !== this.attemptVersion) return;
+        }
+        this.rocks = this.rocks.filter((r) => !r.dead);
+      }
+      checkRockCollision(r, p) {
+        if (p.invuln > 0) return;
+        if (r.state === "rolling") {
+          if (p.climbing || r.platform !== p.platform) return;
+        } else if (r.state === "connector") {
+          if (!p.climbing || !r.connector) return;
+          const c = p.climbing;
+          const rc = r.connector;
+          const samePair = c.from === rc.from && c.to === rc.to || c.from === rc.to && c.to === rc.from;
+          if (!samePair || Math.abs(c.x - rc.x) > 1) return;
+        } else {
+          return;
+        }
+        const dx = r.x - p.x;
+        const dy = r.y - (p.y - 21);
+        if (Math.abs(dx) > 23 || Math.abs(dy) > 30) return;
+        const facesRock = p.facing === (dx >= 0 ? 1 : -1);
+        if (p.blocking && this.can.held && facesRock) {
+          r.dead = true;
+          this.stats.rocks++;
+          p.vx = 0;
+          this.addBurst(r.x, r.y, 10, "#e4c08f");
+          this.sound.block();
+          this.vibrate(24);
+          this.message = "ROCK BLOCKED";
+          this.messageTimer = 0.7;
+        } else {
+          r.dead = true;
+          this.hitPlayer(dx < 0 ? 1 : -1, "ROCK HIT!", false);
+        }
+      }
+      hitPlayer(push, text, moveCan = true) {
+        this.failCurrentCan(text);
+      }
+      failCurrentCan(text) {
+        if (this.state !== "playing") return;
+        const { x, y } = this.player;
+        this.levelRetries++;
+        this.stats.retries++;
+        this.stats.hits++;
+        this.sound.hit();
+        this.vibrate([28, 24, 36]);
+        this.resetCurrentCan(true, `${text} — CAN ${this.levelCans + 1}: GO!`);
+        this.messageTimer = 1.4;
+        this.addBurst(x, y - 24, 12, "#fff1a1");
+        this.sound.retry();
+      }
+      vibrate(pattern) {
+        if (navigator.vibrate) navigator.vibrate(pattern);
+      }
+      addBurst(x, y, count, color) {
+        for (let i = 0; i < count; i++) {
+          const a = rand(0, Math.PI * 2);
+          const speed = rand(35, 115);
+          this.particles.push({ x, y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed - 35, life: rand(0.35, 0.75), max: 1, color, size: rand(2, 5) });
+        }
+      }
+      addDust(x, y, count) {
+        for (let i = 0; i < count; i++) {
+          this.particles.push({ x: x + rand(-18, 18), y: y + rand(-2, 5), vx: rand(-25, 25), vy: rand(-65, -20), life: rand(0.35, 0.7), max: 1, color: "#d7aa72", size: rand(3, 7) });
+        }
+      }
+      updateParticles(dt) {
+        for (const q of this.particles) {
+          q.life -= dt;
+          q.vy += 150 * dt;
+          q.x += q.vx * dt;
+          q.y += q.vy * dt;
+        }
+        this.particles = this.particles.filter((q) => q.life > 0);
+      }
+      render() {
+        const ctx = this.ctx;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.setTransform(this.scaleX, 0, 0, this.scaleY, 0, 0);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        this.drawSky(ctx);
+        this.drawBackground(ctx);
+        this.drawSun(ctx);
+        this.drawVillage(ctx);
+        this.drawMountainPaths(ctx);
+        this.drawPuddle(ctx);
+        this.drawBridge(ctx);
+        this.drawTank(ctx);
+        this.drawChimp(ctx);
+        if (this.hasSnakes()) this.drawSnakes(ctx);
+        if (this.hasRocks()) this.drawRocks(ctx);
+        if (!this.respawning && !this.can.held) {
+          const canY = this.surfaceY(this.can.platform, this.can.x) - 18 - this.can.dropLift * 34;
+          ctx.save();
+          ctx.translate(this.can.x, canY);
+          if (this.can.hitFlash > 0) ctx.rotate(Math.sin(this.elapsed * 48) * 0.16 * (this.can.hitFlash / 0.35));
+          this.drawCan(ctx, 0, 0, 1, false, this.can.full);
+          ctx.restore();
+        }
+        this.drawPlayer(ctx);
+        this.drawParticles(ctx);
+        this.drawWorldUI(ctx);
+      }
+      drawSky(ctx) {
+        const p = this.currentLevelProgress();
+        const top = p < 0.65 ? mixColor("rgb(74,176,221)", "rgb(250,146,80)", p / 0.65) : mixColor("rgb(250,146,80)", "rgb(56,61,88)", (p - 0.65) / 0.35);
+        const bottom = p < 0.65 ? mixColor("rgb(182,226,218)", "rgb(255,191,100)", p / 0.65) : mixColor("rgb(255,191,100)", "rgb(103,67,87)", (p - 0.65) / 0.35);
+        const g = ctx.createLinearGradient(0, 0, 0, WORLD_H);
+        g.addColorStop(0, top);
+        g.addColorStop(0.72, bottom);
+        g.addColorStop(1, "#87a85d");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+      }
+      drawBackground(ctx) {
+        ctx.fillStyle = "rgba(53,92,90,.42)";
+        ctx.beginPath();
+        ctx.moveTo(0, 195);
+        ctx.lineTo(90, 80);
+        ctx.lineTo(165, 170);
+        ctx.lineTo(250, 60);
+        ctx.lineTo(350, 180);
+        ctx.lineTo(430, 90);
+        ctx.lineTo(480, 155);
+        ctx.lineTo(480, 390);
+        ctx.lineTo(0, 390);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "rgba(41,105,74,.56)";
+        ctx.beginPath();
+        ctx.moveTo(0, 270);
+        ctx.lineTo(75, 165);
+        ctx.lineTo(145, 240);
+        ctx.lineTo(235, 130);
+        ctx.lineTo(330, 245);
+        ctx.lineTo(405, 155);
+        ctx.lineTo(480, 235);
+        ctx.lineTo(480, 470);
+        ctx.lineTo(0, 470);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#437a44";
+        ctx.beginPath();
+        ctx.moveTo(0, 390);
+        ctx.quadraticCurveTo(100, 330, 205, 395);
+        ctx.quadraticCurveTo(325, 315, 480, 390);
+        ctx.lineTo(480, 860);
+        ctx.lineTo(0, 860);
+        ctx.closePath();
+        ctx.fill();
+        for (const [x, y, s] of [[32, 300, 0.8], [451, 270, 0.72], [27, 535, 0.76], [455, 555, 0.84], [356, 760, 0.62], [130, 780, 0.58]]) this.drawTree(ctx, x, y, s);
+      }
+      drawTree(ctx, x, y, s) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(s, s);
+        ctx.fillStyle = "#4e3824";
+        ctx.fillRect(-3, 0, 6, 24);
+        ctx.fillStyle = "#235c37";
+        for (const [dx, dy, r] of [[0, -4, 14], [-10, 5, 11], [10, 5, 11], [0, 10, 12]]) {
+          ctx.beginPath();
+          ctx.arc(dx, dy, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+      drawSun(ctx) {
+        const p = this.currentLevelProgress();
+        const x = 350 + Math.sin(Math.PI * p) * 26;
+        const y = lerp(76, 430, p);
+        const radius = 72;
+        const warm = clamp((p - 0.58) / 0.42, 0, 1);
+        ctx.save();
+        const glow = ctx.createRadialGradient(x, y, radius * 0.35, x, y, radius * 1.62);
+        glow.addColorStop(0, "rgba(255,244,160,.56)");
+        glow.addColorStop(0.52, "rgba(255,196,85,.23)");
+        glow.addColorStop(1, "rgba(255,156,70,0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 1.62, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = mixColor("rgb(255,228,103)", "rgb(255,119,66)", warm);
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.28;
+        ctx.fillStyle = "#fffbd6";
+        ctx.beginPath();
+        ctx.arc(x - 20, y - 23, 26, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.restore();
+      }
+      drawVillage(ctx) {
+        this.drawHut(ctx, 18, 114, 0.85, "#d99042");
+        this.drawHut(ctx, 105, 123, 0.68, "#cc7441");
+        ctx.fillStyle = "#42673a";
+        ctx.beginPath();
+        ctx.ellipse(72, 149, 74, 17, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      drawHut(ctx, x, y, s, wall) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(s, s);
+        ctx.fillStyle = wall;
+        ctx.fillRect(0, 0, 55, 35);
+        ctx.fillStyle = "#6a3c24";
+        ctx.fillRect(22, 13, 13, 22);
+        ctx.fillStyle = "#e4bb5b";
+        ctx.beginPath();
+        ctx.moveTo(-8, 2);
+        ctx.lineTo(27, -20);
+        ctx.lineTo(64, 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#8a5a2c";
+        ctx.lineWidth = 3;
+        for (let i = -4; i < 62; i += 8) {
+          ctx.beginPath();
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i + 26, -17);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+      drawMountainPaths(ctx) {
+        for (let i = 0; i < this.platforms.length; i++) {
+          if (i === 2) {
+            this.drawPathSegment(ctx, i, this.platforms[i].x1, BRIDGE_X1);
+            this.drawPathSegment(ctx, i, BRIDGE_X2, this.platforms[i].x2);
+          } else {
+            this.drawPathSegment(ctx, i, this.platforms[i].x1, this.platforms[i].x2);
+          }
+        }
+        this.drawRockChute(ctx, ROCK_TOP_EXIT_X, this.surfaceY(0, ROCK_TOP_EXIT_X), this.surfaceY(1, ROCK_TOP_EXIT_X));
+        this.drawSteps(ctx, 420, this.surfaceY(0, 420), this.surfaceY(1, 420), -1);
+        this.drawSteps(ctx, 75, this.surfaceY(1, 75), this.surfaceY(2, 75), 1);
+        this.drawSteps(ctx, 420, this.surfaceY(2, 420), this.surfaceY(BOTTOM_PLATFORM, 420), -1);
+        this.drawSteps(ctx, 35, this.surfaceY(BOTTOM_PLATFORM, 35), this.surfaceY(LOWER_BYPASS, 35), 1);
+        this.drawSteps(ctx, 385, this.surfaceY(LOWER_BYPASS, 385), this.surfaceY(UPPER_BYPASS, 385), -1);
+        this.drawSteps(ctx, 25, this.surfaceY(UPPER_BYPASS, 25), this.surfaceY(1, 25), 1);
+        this.drawRouteSigns(ctx);
+      }
+      drawRouteSigns(ctx) {
+        const bridgeY = this.surfaceY(2, 260) - 44;
+        ctx.save();
+        ctx.fillStyle = "#70502d";
+        ctx.fillRect(248, bridgeY - 4, 5, 36);
+        ctx.fillStyle = "#f2ce68";
+        ctx.beginPath();
+        ctx.roundRect(205, bridgeY - 28, 91, 28, 5);
+        ctx.fill();
+        ctx.strokeStyle = "#6f4e28";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = "#3b2b20";
+        ctx.font = "900 9px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText("EMPTY CAN ONLY", 250.5, bridgeY - 11);
+        const routeY = this.surfaceY(BOTTOM_PLATFORM, 130) - 52;
+        ctx.fillStyle = "#70502d";
+        ctx.fillRect(126, routeY - 2, 5, 35);
+        ctx.fillStyle = "#ffd85a";
+        ctx.beginPath();
+        ctx.roundRect(72, routeY - 28, 112, 28, 5);
+        ctx.fill();
+        ctx.strokeStyle = "#6f4e28";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = "#3b2b20";
+        ctx.font = "900 10px system-ui";
+        ctx.fillText("← FULL CAN PATH", 128, routeY - 11);
+        ctx.restore();
+      }
+      drawPathSegment(ctx, index, x1, x2) {
+        const y1 = this.surfaceY(index, x1), y2 = this.surfaceY(index, x2);
+        ctx.strokeStyle = "#5c3424";
+        ctx.lineWidth = 46;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1 + 8);
+        ctx.lineTo(x2, y2 + 8);
+        ctx.stroke();
+        ctx.strokeStyle = "#a6633d";
+        ctx.lineWidth = 34;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.strokeStyle = "#d28a4b";
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1 - 15);
+        ctx.lineTo(x2, y2 - 15);
+        ctx.stroke();
+        ctx.strokeStyle = "#3d733d";
+        ctx.lineWidth = 7;
+        ctx.setLineDash([12, 8]);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1 - 18);
+        ctx.lineTo(x2, y2 - 18);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      drawSteps(ctx, x, y1, y2, side) {
+        const top = Math.min(y1, y2), bottom = Math.max(y1, y2);
+        ctx.strokeStyle = "#5a3425";
+        ctx.lineWidth = 28;
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, bottom);
+        ctx.stroke();
+        ctx.fillStyle = "#a9643e";
+        const n = 6;
+        for (let i = 0; i < n; i++) {
+          const y = lerp(top, bottom, (i + 0.5) / n);
+          ctx.fillRect(x - 15, y - 6, 30, 10);
+          ctx.fillStyle = "#d18a4d";
+          ctx.fillRect(x - 15, y - 6, 30, 3);
+          ctx.fillStyle = "#a9643e";
+        }
+        ctx.strokeStyle = "#3a6b39";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(x + side * 18, top);
+        ctx.lineTo(x + side * 18, bottom);
+        ctx.stroke();
+      }
+      drawRockChute(ctx, x, y1, y2) {
+        const top = Math.min(y1, y2), bottom = Math.max(y1, y2);
+        ctx.save();
+        ctx.strokeStyle = "#4a372d";
+        ctx.lineWidth = 20;
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, bottom);
+        ctx.stroke();
+        ctx.strokeStyle = "#776254";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x - 9, top);
+        ctx.lineTo(x - 9, bottom);
+        ctx.moveTo(x + 9, top);
+        ctx.lineTo(x + 9, bottom);
+        ctx.stroke();
+        ctx.fillStyle = "#8b7b6d";
+        for (let y = top + 13; y < bottom - 7; y += 24) {
+          ctx.beginPath();
+          ctx.arc(x + (Math.floor(y / 24) % 2 ? -2 : 3), y, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = "#ffe47a";
+        ctx.font = "900 8px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText("ROCK CHUTE", x, top - 8);
+        ctx.restore();
+      }
+      drawBridge(ctx) {
+        const y1 = this.surfaceY(2, BRIDGE_X1), y2 = this.surfaceY(2, BRIDGE_X2);
+        const b = this.bridge;
+        ctx.save();
+        const warningShake = b.state === "warning" ? Math.sin(b.shake * 44) * 2.4 : 0;
+        ctx.translate(0, warningShake);
+        ctx.strokeStyle = "#4c3324";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(BRIDGE_X1 - 5, y1 - 20);
+        ctx.quadraticCurveTo(260, (y1 + y2) / 2 - 10, BRIDGE_X2 + 5, y2 - 20);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(BRIDGE_X1 - 5, y1 + 5);
+        ctx.quadraticCurveTo(260, (y1 + y2) / 2 + 15, BRIDGE_X2 + 5, y2 + 5);
+        ctx.stroke();
+        let visibleT = 1;
+        if (b.state === "rebuilding") visibleT = 1 - b.timer / 0.65;
+        const count = 8;
+        for (let i = 0; i < count; i++) {
+          if (b.state === "collapsed" && i > 1 && i < count - 2) continue;
+          if (b.state === "rebuilding" && i / count > visibleT) continue;
+          const t = i / (count - 1);
+          let x = lerp(BRIDGE_X1, BRIDGE_X2, t);
+          let y = lerp(y1, y2, t);
+          if (b.state === "collapsed" && (i === 1 || i === count - 2)) y += 18;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(0.08 * Math.sin(i * 2.2));
+          ctx.fillStyle = b.state === "warning" && i % 2 ? "#b47d41" : "#8a5a33";
+          ctx.fillRect(-10, -13, 20, 25);
+          ctx.fillStyle = "#c89353";
+          ctx.fillRect(-10, -13, 20, 4);
+          ctx.strokeStyle = "#50301f";
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(-10, -13, 20, 25);
+          if (b.state === "warning" && i === 3) {
+            ctx.beginPath();
+            ctx.moveTo(-2, -10);
+            ctx.lineTo(4, -2);
+            ctx.lineTo(-3, 8);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+        ctx.restore();
+      }
+      drawPuddle(ctx) {
+        const y = this.surfaceY(BOTTOM_PLATFORM, 70) + 20;
+        ctx.fillStyle = "rgba(49,89,66,.45)";
+        ctx.beginPath();
+        ctx.ellipse(70, y + 11, 69, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#54a7c8";
+        ctx.beginPath();
+        ctx.ellipse(70, y, 58, 15, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#a8e4e6";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(61, y - 1, 25, 0.2, 2.4);
+        ctx.stroke();
+        ctx.fillStyle = "#3f6c42";
+        for (const x of [20, 33, 111, 120]) {
+          ctx.beginPath();
+          ctx.moveTo(x, y + 4);
+          ctx.lineTo(x - 4, y - 14);
+          ctx.lineTo(x + 1, y - 4);
+          ctx.lineTo(x + 5, y - 17);
+          ctx.lineTo(x + 7, y + 5);
+          ctx.fill();
+        }
+        ctx.font = "900 12px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(255,255,255,.9)";
+        ctx.fillText("WATER", 70, y + 35);
+      }
+      drawTank(ctx) {
+        const x = 48, y = this.surfaceY(0, 65) - 48;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = "#777e76";
+        ctx.fillRect(-22, -15, 44, 43);
+        ctx.fillStyle = "#a9b1a8";
+        ctx.fillRect(-19, -12, 38, 8);
+        ctx.strokeStyle = "#343b36";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(-22, -15, 44, 43);
+        ctx.fillStyle = "#58a7c8";
+        ctx.fillRect(-16, 10, 32, 12);
+        ctx.fillStyle = "#d8d7bf";
+        ctx.fillRect(18, 2, 13, 5);
+        ctx.fillRect(26, 2, 5, 11);
+        ctx.restore();
+      }
+      drawChimp(ctx) {
+        const c = this.chimp;
+        const x = 420, y = 99;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = "#6b4b32";
+        ctx.fillRect(-38, 25, 76, 12);
+        ctx.fillStyle = "#8b6941";
+        ctx.fillRect(-34, 24, 68, 4);
+        const active = this.hasRocks();
+        const bounce = active && c.phase === "windup" ? -3 : Math.sin(this.elapsed * 3) * 1.2;
+        ctx.translate(0, bounce);
+        ctx.strokeStyle = "#3a251d";
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(-14, 18);
+        ctx.lineTo(-25, 31);
+        ctx.moveTo(14, 18);
+        ctx.lineTo(25, 31);
+        ctx.stroke();
+        ctx.fillStyle = "#3e2d26";
+        ctx.beginPath();
+        ctx.ellipse(0, 7, 18, 23, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0, -13, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#b5885f";
+        ctx.beginPath();
+        ctx.ellipse(0, -10, 10, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#16120f";
+        ctx.beginPath();
+        ctx.arc(-4, -14, 1.6, 0, Math.PI * 2);
+        ctx.arc(4, -14, 1.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#3e2d26";
+        ctx.lineWidth = 8;
+        if (active && c.phase === "windup") {
+          ctx.beginPath();
+          ctx.moveTo(-10, 0);
+          ctx.lineTo(-18, -24);
+          ctx.moveTo(10, 0);
+          ctx.lineTo(18, -24);
+          ctx.stroke();
+          ctx.fillStyle = "#75675a";
+          ctx.beginPath();
+          ctx.arc(0, -38, 11, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#473d36";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-5, -43);
+          ctx.lineTo(3, -35);
+          ctx.lineTo(7, -43);
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(-10, 0);
+          ctx.lineTo(-21, 14);
+          ctx.moveTo(10, 0);
+          ctx.lineTo(21, 14);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+      drawSnakes(ctx) {
+        for (const s of this.snakes) {
+          const y = this.surfaceY(s.platform, s.x);
+          ctx.save();
+          ctx.translate(s.x, y - 4);
+          if (s.squashed) {
+            ctx.strokeStyle = "#b6cc31";
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(-14, 0);
+            ctx.quadraticCurveTo(-5, 4, 2, 0);
+            ctx.quadraticCurveTo(9, -4, 15, 0);
+            ctx.stroke();
+            ctx.fillStyle = "#d7e84b";
+            ctx.beginPath();
+            ctx.ellipse(14, -1, 7, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.strokeStyle = "#aacb30";
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(-16, 2);
+            ctx.bezierCurveTo(-8, -7 + Math.sin(s.phase) * 2, 0, 9, 9, 0);
+            ctx.stroke();
+            ctx.fillStyle = "#d9e84a";
+            ctx.beginPath();
+            ctx.ellipse(14, -3, 8, 6, 0.15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#1d2918";
+            ctx.beginPath();
+            ctx.arc(17, -5, 1.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#d6523d";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(21, -2);
+            ctx.lineTo(26, -1);
+            ctx.moveTo(25, -1);
+            ctx.lineTo(28, -3);
+            ctx.moveTo(25, -1);
+            ctx.lineTo(28, 1);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
+      drawRocks(ctx) {
+        for (const r of this.rocks) {
+          ctx.save();
+          ctx.translate(r.x, r.y);
+          ctx.rotate(r.spin);
+          ctx.fillStyle = "#71675d";
+          ctx.beginPath();
+          ctx.arc(0, 0, r.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#423b36";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(-4, -7);
+          ctx.lineTo(2, -1);
+          ctx.lineTo(-2, 6);
+          ctx.moveTo(3, -6);
+          ctx.lineTo(7, -1);
+          ctx.stroke();
+          ctx.fillStyle = "rgba(255,255,255,.18)";
+          ctx.beginPath();
+          ctx.arc(-3, -4, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+      drawPlayer(ctx) {
+        const p = this.player;
+        if (p.dead || this.respawning) return;
+        const blink = p.invuln > 0 && Math.floor(p.invuln * 14) % 2 === 0;
+        if (blink) return;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.scale(p.facing, 1);
+        const walk = p.grounded && !p.climbing ? Math.sin(p.step) : 0;
+        const climbing = !!p.climbing;
+        ctx.strokeStyle = "#39251b";
+        ctx.lineWidth = 6;
+        if (climbing) {
+          ctx.beginPath();
+          ctx.moveTo(-5, -14);
+          ctx.lineTo(-11, 4);
+          ctx.moveTo(5, -14);
+          ctx.lineTo(11, 4);
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(-5, -14);
+          ctx.lineTo(-7 + walk * 4, 3);
+          ctx.moveTo(5, -14);
+          ctx.lineTo(8 - walk * 4, 3);
+          ctx.stroke();
+        }
+        ctx.fillStyle = "#f0a33f";
+        ctx.beginPath();
+        ctx.roundRect(-10, -38, 20, 25, 7);
+        ctx.fill();
+        ctx.fillStyle = "#285c75";
+        ctx.fillRect(-10, -20, 20, 8);
+        ctx.fillStyle = "#6c3c24";
+        ctx.beginPath();
+        ctx.arc(0, -49, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#2b1b14";
+        ctx.beginPath();
+        ctx.arc(-1, -53, 9, Math.PI, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(4, -50, 1.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#6c3c24";
+        ctx.lineWidth = 5;
+        if (this.can.held) {
+          const workingCan = this.isWorkingCan();
+          if (p.blocking) {
+            ctx.beginPath();
+            ctx.moveTo(7, -34);
+            ctx.lineTo(20, -35);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-7, -34);
+            ctx.lineTo(12, -29);
+            ctx.stroke();
+            this.drawCan(ctx, 28, -34, 1, true, this.can.full);
+          } else if (workingCan) {
+            ctx.beginPath();
+            ctx.moveTo(7, -34);
+            ctx.lineTo(17, -19);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-7, -34);
+            ctx.lineTo(9, -17);
+            ctx.stroke();
+            this.drawCan(ctx, 22, -12, 1, false, this.can.full);
+          } else {
+            const headBob = p.grounded && !climbing ? Math.abs(walk) * 1.2 : 0;
+            ctx.beginPath();
+            ctx.moveTo(7, -34);
+            ctx.lineTo(9, -61 - headBob);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-7, -34);
+            ctx.lineTo(-9, -61 - headBob);
+            ctx.stroke();
+            this.drawCan(ctx, 0, -75 - headBob, 1, false, this.can.full);
+          }
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(7, -34);
+          ctx.lineTo(14, -18);
+          ctx.moveTo(-7, -34);
+          ctx.lineTo(-13, -19);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+      drawCan(ctx, x, y, facing = 1, blocking = false, full = false) {
+        ctx.save();
+        ctx.translate(x, y);
+        if (blocking) ctx.rotate(-0.18);
+        ctx.fillStyle = "#edc323";
+        ctx.beginPath();
+        ctx.roundRect(-10, -15, 20, 30, 4);
+        ctx.fill();
+        ctx.strokeStyle = "#6f5710";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = "#142a27";
+        ctx.fillRect(-4, -12, 8, 6);
+        ctx.strokeStyle = "#6f5710";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(-5, -13);
+        ctx.lineTo(-5, -19);
+        ctx.lineTo(5, -19);
+        ctx.lineTo(5, -13);
+        ctx.stroke();
+        ctx.fillStyle = full ? "#4fa2c8" : "rgba(255,255,255,.28)";
+        ctx.fillRect(-6, 5, 12, 6);
+        if (full) {
+          ctx.strokeStyle = "#dff6ff";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(-5, 6);
+          ctx.quadraticCurveTo(0, 4, 5, 6);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+      drawParticles(ctx) {
+        for (const q of this.particles) {
+          ctx.globalAlpha = clamp(q.life / 0.6, 0, 1);
+          ctx.fillStyle = q.color;
+          ctx.beginPath();
+          ctx.arc(q.x, q.y, q.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+      drawWorldUI(ctx) {
+        const p = this.player;
+        const levelLabel = `L${this.level}  ${this.levelConfig().name}  •  ${this.levelCans}/${CANS_PER_LEVEL}`;
+        ctx.save();
+        ctx.font = "950 20px system-ui";
+        const levelW = ctx.measureText(levelLabel).width + 19;
+        ctx.fillStyle = "rgba(12,31,21,.72)";
+        ctx.beginPath();
+        ctx.roundRect(8, 55, levelW, 25, 10);
+        ctx.fill();
+        ctx.fillStyle = "#fff1aa";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(levelLabel, 18, 68);
+        const timeLabel = formatTime(this.elapsed);
+        ctx.font = "950 20px system-ui";
+        const timeW = ctx.measureText(timeLabel).width + 20;
+        const timeX = WORLD_W - timeW - 8;
+        ctx.fillStyle = "rgba(12,31,21,.82)";
+        ctx.beginPath();
+        ctx.roundRect(timeX, 55, timeW, 25, 10);
+        ctx.fill();
+        ctx.fillStyle = "#fff1aa";
+        ctx.textAlign = "center";
+        ctx.fillText(timeLabel, timeX + timeW / 2, 68);
+        ctx.restore();
+        let prompt = "";
+        if (this.state === "playing") {
+          if (this.respawning) prompt = this.message;
+          else if (this.can.held && !this.can.full && p.platform === BOTTOM_PLATFORM && p.x < 112 && p.grounded) prompt = "HOLD CAN TO FILL";
+          else if (this.can.held && this.can.full && p.platform === 0 && p.x < 112 && p.grounded) prompt = "HOLD CAN TO POUR";
+          else if (this.can.held && this.can.full && p.platform === BOTTOM_PLATFORM && p.x < 125 && p.grounded) prompt = "FULL CAN — TAKE THE LONG PATH LEFT";
+          else if (this.can.held && this.can.full && p.platform === 2 && p.x > BRIDGE_X1 - 45 && p.x < BRIDGE_X2 + 45) prompt = "BRIDGE TOO WEAK — TAKE THE LONG PATH";
+          else if (!this.can.held && this.can.platform === p.platform && Math.abs(this.can.x - p.x) < 45) prompt = "TAP CAN TO PICK UP";
+          else if (p.fullCanWarning > 0) prompt = "FULL CAN — SET IT DOWN TO JUMP";
+          else if (this.messageTimer > 0) prompt = this.message;
+        }
+        if (prompt) {
+          ctx.save();
+          ctx.font = "900 14px system-ui";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          const w = Math.min(390, ctx.measureText(prompt).width + 28);
+          ctx.fillStyle = "rgba(12,31,21,.79)";
+          ctx.beginPath();
+          ctx.roundRect((WORLD_W - w) / 2, 17, w, 31, 13);
+          ctx.fill();
+          ctx.fillStyle = "#fff6cb";
+          ctx.fillText(prompt, WORLD_W / 2, 33);
+          ctx.restore();
+        }
+        const progress = this.can.fill || this.can.pour;
+        if (progress > 0) {
+          const x = p.x, y = p.y - 82;
+          ctx.strokeStyle = "rgba(0,0,0,.35)";
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.arc(x, y, 17, -Math.PI / 2, Math.PI * 1.5);
+          ctx.stroke();
+          ctx.strokeStyle = this.can.fill ? "#70d4ef" : "#ffd94e";
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.arc(x, y, 17, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+          ctx.stroke();
+        }
+        if (this.scoreFlash > 0) {
+          const flash = `CAN ${Math.min(this.levelCans, CANS_PER_LEVEL)}/${CANS_PER_LEVEL}`;
+          ctx.save();
+          ctx.globalAlpha = clamp(this.scoreFlash / 0.35, 0, 1);
+          ctx.font = "950 32px system-ui";
+          ctx.textAlign = "center";
+          ctx.fillStyle = "#ffe05b";
+          ctx.strokeStyle = "rgba(0,0,0,.55)";
+          ctx.lineWidth = 6;
+          ctx.strokeText(flash, WORLD_W / 2, 92);
+          ctx.fillText(flash, WORLD_W / 2, 92);
+          ctx.restore();
+        }
+      }
+    }
+    const canvas = $("game");
+    const game = new Game(canvas);
+    window.CR = { buildId: BUILD_ID, saveVersion: SAVE_VERSION, dev: BUILD_LEVEL_SELECT };
+    if (BUILD_LEVEL_SELECT) window.CR.game = game;
+    const overlay = $("overlay");
+    const title = $("overlayTitle");
+    const subtitle = $("overlaySubtitle");
+    const body = $("overlayBody");
+    const statsBox = $("statsBox");
+    const levelSelectBox = $("levelSelectBox");
+    const primary = $("primaryBtn");
+    const secondary = $("secondaryBtn");
+    const soundBtn = $("soundBtn");
+    let primaryAction = () => {
+    }, secondaryAction = () => {
+    };
+    primary.addEventListener("click", () => {
+      game.sound.unlock();
+      game.sound.menu();
+      primaryAction();
+    });
+    secondary.addEventListener("click", () => {
+      game.sound.unlock();
+      game.sound.menu();
+      secondaryAction();
+    });
+    function renderLevelSelect() {
+      const available = game.canSelectLevels();
+      levelSelectBox.classList.toggle("hidden", !available);
+      if (!available) {
+        levelSelectBox.replaceChildren();
+        return;
+      }
+      const titleText = BUILD_LEVEL_SELECT && !game.fullRunCompleted ? "BUILD LEVEL SELECT" : "LEVEL SELECT";
+      levelSelectBox.innerHTML = `<div class="level-select-title">${titleText}</div><div class="level-select-grid"></div>`;
+      const grid = levelSelectBox.querySelector(".level-select-grid");
+      for (const level of LEVELS) {
+        const button = document.createElement("button");
+        button.className = "level-pick";
+        const best = game.bestTimes[level.number - 1];
+        button.innerHTML = `<strong>L${level.number}<br>${level.name}</strong><span>${best ? formatTime(best) : "NO BEST"}</span>`;
+        button.addEventListener("click", () => {
+          overlay.classList.remove("open");
+          game.startLevel(level.number);
+        });
+        grid.append(button);
+      }
+    }
+    function showOverlay(mode) {
+      overlay.classList.add("open");
+      statsBox.classList.add("hidden");
+      secondary.classList.add("hidden");
+      body.classList.add("hidden");
+      levelSelectBox.classList.add("hidden");
+      if (mode === "start") {
+        title.innerHTML = "Karambe Village<br>Water Run";
+        subtitle.textContent = "Three levels. Deliver three cans in each as fast as possible.";
+        body.classList.remove("hidden");
+        renderLevelSelect();
+        primary.textContent = "START FULL RUN";
+        primaryAction = () => {
+          overlay.classList.remove("open");
+          game.start();
+        };
+      } else if (mode === "pause") {
+        title.textContent = `Paused — Level ${game.level}`;
+        subtitle.textContent = `Stopwatch paused at ${formatTime(game.elapsed)}.`;
+        renderLevelSelect();
+        primary.textContent = "RESUME";
+        primaryAction = () => {
+          overlay.classList.remove("open");
+          game.resume();
+        };
+        secondary.classList.remove("hidden");
+        secondary.textContent = game.runMode === "single" ? `RESTART LEVEL ${game.level}` : "RESTART FULL RUN";
+        secondaryAction = () => {
+          overlay.classList.remove("open");
+          if (game.runMode === "single") game.startLevel(game.level);
+          else game.start();
+        };
+      } else if (mode === "singleComplete") {
+        const result = game.levelResults[game.level - 1];
+        title.textContent = `Level ${game.level} Clear`;
+        subtitle.textContent = `Three cans delivered in ${formatTime(result.time)}.`;
+        statsBox.innerHTML = `
+        <span>Level time</span><strong>${formatTime(result.time)}</strong>
+        <span>Can 1</span><strong>${formatTime(result.splits[0])}</strong>
+        <span>Can 2</span><strong>${formatTime(result.splits[1])}</strong>
+        <span>Can 3</span><strong>${formatTime(result.splits[2])}</strong>
+        <span>Retries</span><strong>${result.retries}</strong>
+        <span>Best</span><strong>${formatTime(game.bestTimes[game.level - 1])}</strong>`;
+        statsBox.classList.remove("hidden");
+        renderLevelSelect();
+        primary.textContent = `RUN LEVEL ${game.level} AGAIN`;
+        primaryAction = () => {
+          overlay.classList.remove("open");
+          game.startLevel(game.level);
+        };
+        secondary.classList.remove("hidden");
+        secondary.textContent = "START FULL RUN";
+        secondaryAction = () => {
+          overlay.classList.remove("open");
+          game.start();
+        };
+      } else if (mode === "levelComplete") {
+        const next = LEVELS[game.level];
+        const result = game.levelResults[game.level - 1];
+        title.textContent = `Level ${game.level} Clear`;
+        subtitle.textContent = `Three cans delivered in ${formatTime(result.time)}.`;
+        statsBox.innerHTML = `
+        <span>Level time</span><strong>${formatTime(result.time)}</strong>
+        <span>Can 1</span><strong>${formatTime(result.splits[0])}</strong>
+        <span>Can 2</span><strong>${formatTime(result.splits[1])}</strong>
+        <span>Can 3</span><strong>${formatTime(result.splits[2])}</strong>
+        <span>Retries</span><strong>${result.retries}</strong>
+        <span>Best</span><strong>${formatTime(game.bestTimes[game.level - 1])}</strong>
+        <span>Next</span><strong>${game.level + 1}: ${next.name}</strong>`;
+        statsBox.classList.remove("hidden");
+        primary.textContent = `START LEVEL ${game.level + 1}`;
+        primaryAction = () => {
+          overlay.classList.remove("open");
+          game.advanceLevel();
+        };
+        secondary.classList.remove("hidden");
+        secondary.textContent = "RESTART FULL RUN";
+        secondaryAction = () => {
+          overlay.classList.remove("open");
+          game.start();
+        };
+      } else if (mode === "over") {
+        const l1 = game.levelResults[0];
+        const l2 = game.levelResults[1];
+        const l3 = game.levelResults[2];
+        title.textContent = "Water Run Complete";
+        subtitle.textContent = `Nine cans delivered in ${formatTime(game.totalTime)}.`;
+        statsBox.innerHTML = `
+        <span>Level 1</span><strong>${formatTime(l1?.time)}</strong>
+        <span>Level 2</span><strong>${formatTime(l2?.time)}</strong>
+        <span>Level 3</span><strong>${formatTime(l3?.time)}</strong>
+        <span>Total time</span><strong>${formatTime(game.totalTime)}</strong>
+        <span>Total retries</span><strong>${game.stats.retries}</strong>
+        <span>Rocks blocked</span><strong>${game.stats.rocks}</strong>
+        <span>Snakes squashed</span><strong>${game.stats.snakes}</strong>
+        <span>Best total</span><strong>${formatTime(game.bestTotal)}</strong>`;
+        statsBox.classList.remove("hidden");
+        renderLevelSelect();
+        primary.textContent = "RUN ALL LEVELS AGAIN";
+        primaryAction = () => {
+          overlay.classList.remove("open");
+          game.start();
+        };
+        secondary.classList.remove("hidden");
+        secondary.textContent = "HOW TO PLAY";
+        secondaryAction = () => showOverlay("start");
+      }
+      soundBtn.textContent = `SOUND: ${game.sound.enabled ? "ON" : "OFF"}`;
+    }
+    soundBtn.addEventListener("click", () => {
+      game.sound.setEnabled(!game.sound.enabled);
+      if (game.sound.enabled) game.sound.unlock();
+      soundBtn.textContent = `SOUND: ${game.sound.enabled ? "ON" : "OFF"}`;
+    });
+    $("menuBtn").addEventListener("click", () => {
+      game.sound.unlock();
+      if (game.state === "playing") {
+        game.pause();
+        showOverlay("pause");
+      } else if (game.state === "paused") showOverlay("pause");
+      else if (game.state === "between") showOverlay("levelComplete");
+      else if (game.state === "singleComplete") showOverlay("singleComplete");
+      else if (game.state === "over") showOverlay("over");
+      else if (game.state === "clearing") return;
+      else showOverlay("start");
+      game.sound.menu();
+    });
+    const controls = createGameControls(game, { showOverlay });
+    game.controls = controls;
+    game.cancelControlTouches = (reason) => controls.releaseAll(reason);
+    window.CR.runFullSelfCheck = () => {
+      const state = () => JSON.stringify({ player: game.player, can: game.can, rocks: game.rocks, snakes: game.snakes, elapsed: game.elapsed, cans: game.levelCans, progress: game.tripProgress });
+      const before = state();
+      game.render();
+      const contacts = controls.read().mobile.activePointers;
+      const checks = {
+        renderReadOnly: before === state(),
+        finitePosition: Number.isFinite(game.player.x) && Number.isFinite(game.player.y),
+        validLevel: game.level >= 1 && game.level <= 3,
+        validCheckpoint: game.levelCans >= 0 && game.levelCans <= 3 && game.elapsed >= 0,
+        uniqueContacts: new Set(contacts.map((p) => p.identifier)).size === contacts.length,
+        uniqueControls: new Set(contacts.map((p) => p.controlId)).size === contacts.length,
+        standalone: !document.querySelector('script[src],link[rel="stylesheet"]')
+      };
+      return { pass: Object.values(checks).every(Boolean), buildId: BUILD_ID, checks };
+    };
+    if (BUILD_LEVEL_SELECT) window.CR.controls = controls;
+    const pauseWhenHidden = () => {
+      controls.releaseAll("hidden");
+      if (game.state === "playing") {
+        game.pause();
+        showOverlay("pause");
+      }
+    };
+    window.addEventListener("blur", pauseWhenHidden);
+    window.addEventListener("pagehide", pauseWhenHidden);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) pauseWhenHidden();
+    });
+    window.addEventListener("resize", () => {
+      game.resize();
+      if (innerWidth > innerHeight && innerHeight < 520) pauseWhenHidden();
+    });
+    new ResizeObserver(() => game.resize()).observe($("stage"));
+    document.addEventListener("contextmenu", (e) => e.preventDefault());
+    showOverlay("start");
+  })();
+})();
+
+</script>
+</body>
+</html>

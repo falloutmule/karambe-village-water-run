@@ -1,0 +1,64 @@
+{
+  "engine": "Archify 2.16.0",
+  "atlasAcceptance": "not-run",
+  "views": [
+    {
+      "view": "gameplay",
+      "showcaseChecksPassed": 9,
+      "composition": {
+        "errors": 0,
+        "warnings": 0
+      },
+      "nativeDelivery": true,
+      "offlineVisualStatus": "pass",
+      "visualReview": "Small and large screenshots inspected; labels and cards readable, no crossed relationships",
+      "desktopViewports": [
+        "1440x900",
+        "1600x1000",
+        "1920x1080",
+        "2048x1320"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ]
+    },
+    {
+      "view": "runtime",
+      "showcaseChecksPassed": 9,
+      "composition": {
+        "errors": 0,
+        "warnings": 0
+      },
+      "nativeDelivery": true,
+      "offlineVisualStatus": "pass",
+      "visualReview": "Small and large screenshots inspected; labels and cards readable, no crossed relationships",
+      "desktopViewports": [
+        "1440x900",
+        "1600x1000",
+        "1920x1080",
+        "2048x1320"
+      ],
+      "themes": [
+        "light",
+        "dark"
+      ]
+    }
+  ],
+  "offlineSmoke": [
+    {
+      "view": "gameplay",
+      "unexpectedNetwork": [],
+      "runtimeErrors": [],
+      "svgCount": 2,
+      "pass": true
+    },
+    {
+      "view": "runtime",
+      "unexpectedNetwork": [],
+      "runtimeErrors": [],
+      "svgCount": 2,
+      "pass": true
+    }
+  ]
+}

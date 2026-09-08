@@ -1,0 +1,256 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Karambe Village Water Run — runtime ownership",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "input",
+        "label": "Contact to simulation",
+        "focus": [
+          "contacts",
+          "controls",
+          "adapter",
+          "simulation"
+        ],
+        "note": "SFHS contact ownership feeds the product adapter; game mechanics stay product-local."
+      },
+      {
+        "id": "output",
+        "label": "State to feedback",
+        "focus": [
+          "simulation",
+          "render",
+          "audio",
+          "save"
+        ],
+        "note": "Canvas, procedural sound and persistent records consume game outcomes."
+      },
+      {
+        "id": "delivery",
+        "label": "Single-file boundary",
+        "focus": [
+          "source",
+          "build",
+          "artifact"
+        ],
+        "note": "Canonical product and vendored runtime inputs pack into one standalone HTML artifact."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "contacts",
+      "type": "external",
+      "label": "Phone / keyboard",
+      "sublabel": "Pointer contacts + keys",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        190,
+        72
+      ]
+    },
+    {
+      "id": "controls",
+      "type": "frontend",
+      "label": "SFHS mobile controls",
+      "sublabel": "Contact ownership + release",
+      "pos": [
+        370,
+        40
+      ],
+      "size": [
+        205,
+        72
+      ]
+    },
+    {
+      "id": "adapter",
+      "type": "backend",
+      "label": "Product input adapter",
+      "sublabel": "Movement / CAN / JUMP",
+      "pos": [
+        710,
+        40
+      ],
+      "size": [
+        205,
+        72
+      ]
+    },
+    {
+      "id": "simulation",
+      "type": "backend",
+      "label": "Game simulation",
+      "sublabel": "Fixed steps; playing state",
+      "pos": [
+        1040,
+        40
+      ],
+      "size": [
+        210,
+        72
+      ]
+    },
+    {
+      "id": "render",
+      "type": "frontend",
+      "label": "Canvas + HUD",
+      "sublabel": "Player, routes, hazards, sun",
+      "pos": [
+        1040,
+        260
+      ],
+      "size": [
+        210,
+        72
+      ]
+    },
+    {
+      "id": "audio",
+      "type": "frontend",
+      "label": "Procedural WebAudio",
+      "sublabel": "Original effects + music",
+      "pos": [
+        710,
+        260
+      ],
+      "size": [
+        205,
+        72
+      ]
+    },
+    {
+      "id": "save",
+      "type": "database",
+      "label": "Device persistence",
+      "sublabel": "Best times / unlock / mute",
+      "pos": [
+        370,
+        260
+      ],
+      "size": [
+        205,
+        72
+      ]
+    },
+    {
+      "id": "source",
+      "type": "backend",
+      "label": "Canonical inputs",
+      "sublabel": "Game + local SFHS runtime",
+      "pos": [
+        40,
+        470
+      ],
+      "size": [
+        205,
+        72
+      ]
+    },
+    {
+      "id": "build",
+      "type": "backend",
+      "label": "Build and verification",
+      "sublabel": "Inline source; check output",
+      "pos": [
+        370,
+        470
+      ],
+      "size": [
+        205,
+        72
+      ]
+    },
+    {
+      "id": "artifact",
+      "type": "frontend",
+      "label": "One playable HTML",
+      "sublabel": "Standalone + GitHub Pages",
+      "pos": [
+        710,
+        470
+      ],
+      "size": [
+        205,
+        72
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "contacts",
+      "to": "controls",
+      "label": "events"
+    },
+    {
+      "from": "controls",
+      "to": "adapter",
+      "label": "owned actions"
+    },
+    {
+      "from": "adapter",
+      "to": "simulation",
+      "label": "game intent"
+    },
+    {
+      "from": "simulation",
+      "to": "render",
+      "label": "read state",
+      "labelDy": 55
+    },
+    {
+      "from": "source",
+      "to": "build",
+      "label": "pack"
+    },
+    {
+      "from": "build",
+      "to": "artifact",
+      "label": "verified bytes"
+    },
+    {
+      "from": "simulation",
+      "to": "audio",
+      "label": "sound events"
+    },
+    {
+      "from": "audio",
+      "to": "save",
+      "label": "mute setting"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Input boundary",
+      "items": [
+        "SFHS owns contacts and authoritative visual activity.",
+        "Product code decides tap/hold CAN, pickup, placement, fill, jump and blocking.",
+        "Cancel, blur, hidden page, viewport changes, hit and transitions clear input."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Simulation ownership",
+      "items": [
+        "Player / can / path state constrain movement and collision.",
+        "Rocks, snakes and walkway can trigger current-can retry.",
+        "Deliveries update bank, splits, stopwatch, sun and level progression."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Output boundary",
+      "items": [
+        "Game events drive original synthesized sound; a valid gesture unlocks audio.",
+        "Persistent bests and full-run unlock are independent of an unfinished attempt.",
+        "Product runtime has no external asset, script, style or font dependency."
+      ]
+    }
+  ]
+}

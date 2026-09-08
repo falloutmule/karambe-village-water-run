@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#173824">
+<link rel="icon" href="data:,">
+<title>Karambe Village Water Run</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --ink: #fff9df;
+    --deep: #14251c;
+    --panel: rgba(18, 36, 27, .96);
+    --line: rgba(255,255,255,.18);
+    --button-top: #345c3d;
+    --button-bottom: #1d3927;
+    --button-press: #102a1b;
+    --yellow: #f0c530;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #173824; }
+  body {
+    font-family: ui-rounded, "Arial Rounded MT Bold", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--ink);
+    overscroll-behavior: none;
+    touch-action: none;
+    user-select: none;
+  }
+  button { font: inherit; }
+  #app {
+    padding-top: env(safe-area-inset-top, 0px);
+    width: 100%;
+    height: 100dvh;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #173824;
+  }
+  #stage {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+    background: #5db9da;
+  }
+  #game {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+  #controls {
+    flex: 0 0 clamp(82px, 11.5dvh, 108px);
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.08fr 1.08fr;
+    gap: clamp(5px, 1.4vw, 9px);
+    padding: 7px max(8px, env(safe-area-inset-right)) 7px max(8px, env(safe-area-inset-left));
+    background: #142a1d;
+    border-top: 1px solid rgba(255,255,255,.13);
+    box-shadow: 0 -5px 20px rgba(0,0,0,.22);
+  }
+  .control {
+    position: relative;
+    min-width: 0;
+    border: 1px solid rgba(255,255,255,.17);
+    border-bottom-color: rgba(0,0,0,.48);
+    border-radius: 17px;
+    color: #fffbe5;
+    background: linear-gradient(var(--button-top), var(--button-bottom));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 4px 0 #0a1e12;
+    font-weight: 900;
+    font-size: clamp(16px, 4.5vw, 23px);
+    letter-spacing: .02em;
+    text-shadow: 0 2px 0 rgba(0,0,0,.5);
+    touch-action: none;
+  }
+  .control .small {
+    display: block;
+    margin-top: 3px;
+    font-size: clamp(8px, 2.3vw, 11px);
+    letter-spacing: .09em;
+    opacity: .83;
+  }
+  .control[data-control-active="true"] {
+    transform: translateY(3px);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,.45), 0 1px 0 #0a1e12;
+    background: var(--button-press);
+  }
+  #canBtn { background: linear-gradient(#9a7a16, #5d480d); }
+  #jumpBtn { background: linear-gradient(#7a4331, #472318); }
+  #footer {
+    flex: 0 0 auto;
+    min-height: calc(46px + env(safe-area-inset-bottom, 0px));
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(48px, 14%) 1fr minmax(70px, 19%);
+    align-items: center;
+    padding: 0 5px env(safe-area-inset-bottom, 0px);
+    background: #0b1e13;
+    border-top: 1px solid rgba(255,255,255,.12);
+  }
+  #menuBtn {
+    align-self: stretch;
+    border: 0;
+    background: transparent;
+    color: white;
+    font-size: 25px;
+    font-weight: 900;
+    touch-action: manipulation;
+  }
+  #footerTitle {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    text-align: center;
+    font-size: clamp(10px, 3.15vw, 15px);
+    font-weight: 950;
+    letter-spacing: .055em;
+    color: #ffefb0;
+    text-shadow: 0 2px 0 #000;
+  }
+  #score {
+    text-align: right;
+    padding-right: 8px;
+    font-size: clamp(12px, 3.8vw, 18px);
+    font-weight: 950;
+    color: #ffd94e;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 2px 0 #000;
+  }
+  #overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+    background: rgba(5, 17, 10, .56);
+    backdrop-filter: blur(5px);
+  }
+  #overlay.open { display: flex; }
+  .panel {
+    width: min(92vw, 430px);
+    max-height: 90dvh;
+    overflow: auto;
+    touch-action: pan-y;
+    padding: 16px 16px 14px;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 23px;
+    background: var(--panel);
+    box-shadow: 0 20px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.1);
+    text-align: center;
+  }
+  .panel h1 {
+    margin: 0 0 7px;
+    color: #ffe47a;
+    font-size: clamp(27px, 8vw, 42px);
+    line-height: .98;
+    letter-spacing: -.03em;
+    text-shadow: 0 3px 0 rgba(0,0,0,.55);
+  }
+  .panel h2 {
+    margin: 0 0 11px;
+    color: #fff4ca;
+    font-size: clamp(17px, 5vw, 24px);
+  }
+  .panel p { margin: 8px auto 14px; max-width: 34em; line-height: 1.35; color: #e6efd9; }
+  .rules {
+    display: grid;
+    gap: 5px;
+    margin: 10px 0;
+    text-align: left;
+    font-size: clamp(13px, 3.6vw, 16px);
+  }
+  .rule {
+    padding: 7px 9px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 12px;
+    background: rgba(255,255,255,.055);
+  }
+  .rule b { color: #ffd94e; }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 7px 15px;
+    margin: 15px 0 18px;
+    padding: 13px 14px;
+    border-radius: 14px;
+    background: rgba(0,0,0,.2);
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+  }
+  .stats strong { color: #ffd94e; text-align: right; }
+  .action {
+    width: 100%;
+    min-height: 52px;
+    margin-top: 8px;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 15px;
+    color: #fffbea;
+    background: linear-gradient(#4b7c4f, #24482c);
+    box-shadow: 0 4px 0 #102518;
+    font-weight: 950;
+    font-size: 17px;
+    letter-spacing: .035em;
+  }
+  .action.secondary { background: linear-gradient(#4a5150, #282e2d); box-shadow: 0 4px 0 #111; }
+  .action.tertiary { background: transparent; box-shadow: none; border-color: rgba(255,255,255,.16); color: #dbe7d7; }
+  .level-select {
+    margin: 12px 0 4px;
+    padding: 10px;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 14px;
+    background: rgba(0,0,0,.16);
+  }
+  .level-select-title {
+    margin-bottom: 8px;
+    color: #ffe47a;
+    font-size: 12px;
+    font-weight: 950;
+    letter-spacing: .09em;
+  }
+  .level-select-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .level-pick {
+    min-width: 0;
+    min-height: 58px;
+    padding: 7px 4px;
+    border: 1px solid rgba(255,255,255,.17);
+    border-radius: 11px;
+    color: #fffbea;
+    background: linear-gradient(#3b6542, #203c28);
+    box-shadow: 0 3px 0 #0d2114;
+    font-weight: 950;
+    line-height: 1.05;
+    touch-action: manipulation;
+  }
+  .level-pick strong { display: block; font-size: 13px; }
+  .level-pick span { display: block; margin-top: 5px; color: #ffd94e; font-size: 10px; font-variant-numeric: tabular-nums; }
+  .level-pick:active { transform: translateY(2px); box-shadow: 0 1px 0 #0d2114; }
+  .action:active { transform: translateY(3px); box-shadow: 0 1px 0 #102518; }
+  .hidden { display: none !important; }
+  #rotateNote {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    place-items: center;
+    padding: 24px;
+    background: #10261a;
+    color: white;
+    text-align: center;
+    font-weight: 800;
+  }
+  @media (orientation: landscape) and (max-height: 520px) {
+    #rotateNote { display: grid; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #overlay { backdrop-filter: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage"><canvas id="game" aria-label="Karambe Village Water Run game screen"></canvas></div>
+  <div id="controls" aria-label="Game controls">
+    <button class="control" id="leftBtn" aria-label="Move left">◀<span class="small">LEFT</span></button>
+    <button class="control" id="rightBtn" aria-label="Move right">▶<span class="small">RIGHT</span></button>
+    <button class="control" id="canBtn" aria-label="Use, carry, fill, place, or block with the jerry can">▣<span class="small">CAN</span></button>
+    <button class="control" id="jumpBtn" aria-label="Jump">↑<span class="small">JUMP</span></button>
+  </div>
+  <div id="footer">
+    <button id="menuBtn" aria-label="Open menu">☰</button>
+    <div id="footerTitle">KARAMBE VILLAGE WATER RUN</div>
+    <div id="score" aria-live="polite">CANS 00</div>
+  </div>
+</div>
+
+<div id="overlay" class="open" role="dialog" aria-modal="true" aria-labelledby="overlayTitle">
+  <div class="panel">
+    <h1 id="overlayTitle">Karambe Village<br>Water Run</h1>
+    <h2 id="overlaySubtitle">Three levels. Three cans each. Fastest total time wins.</h2>
+    <div id="overlayBody" class="rules">
+      <div class="rule"><b>Move:</b> hold ◀ / ▶. Keep moving into a ladder to climb. Follow the short path downhill to water.</div>
+      <div class="rule"><b>CAN:</b> tap to place ahead or pick up. Hold at water to fill; hold at the village to deliver.</div>
+      <div class="rule"><b>Full can:</b> take the long path left of water. To jump, put it down, jump, then retrieve it.</div>
+      <div class="rule"><b>Rocks (L2+):</b> face the rock and hold CAN to block, or place the can in its path.</div>
+      <div class="rule"><b>Snakes (L3):</b> jump onto them or place a full can ahead to crush them.</div>
+      <div class="rule"><b>Fast retry:</b> delivered cans stay banked. Only time is lost. Finish all three levels to unlock Level Select.</div>
+    </div>
+    <div id="statsBox" class="stats hidden"></div>
+    <div id="levelSelectBox" class="level-select hidden" aria-label="Level select"></div>
+    <button id="primaryBtn" class="action">START WATER RUN</button>
+    <button id="secondaryBtn" class="action secondary hidden">RESTART ROUND</button>
+    <button id="soundBtn" class="action tertiary">SOUND: ON</button>
+  </div>
+</div>
+<div id="rotateNote">Turn the phone upright to play Karambe Village Water Run.</div>
+
+<!-- GAME_BUNDLE -->
+</body>
+</html>

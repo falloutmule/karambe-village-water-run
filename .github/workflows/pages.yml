@@ -1,0 +1,44 @@
+name: Verify and publish game
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  game:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:check
+      - run: mkdir -p test-results
+      - run: npm run test:all
+      - name: Publish only the single HTML game
+        run: |
+          mkdir -p test-results/pages
+          cp index.html test-results/pages/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: test-results/pages
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: engineering-proofs
+          path: test-results/
+      - name: Deploy
+        id: deploy
+        uses: actions/deploy-pages@v4
