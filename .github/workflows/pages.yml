@@ -26,10 +26,12 @@ jobs:
       - run: npm run build:check
       - run: mkdir -p test-results
       - run: npm run test:all
-      - name: Publish only the single HTML game
+      - run: node tests/phone-access.mjs
+      - name: Publish standalone release and phone-test games
         run: |
           mkdir -p test-results/pages
           cp index.html test-results/pages/index.html
+          cp playtest.html test-results/pages/playtest.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

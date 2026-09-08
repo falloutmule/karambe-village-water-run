@@ -1,6 +1,7 @@
 # Engineering verification
 
-Current candidate: `karambe-completion2`. Canonical input is `src/` plus its build
+Current candidate: `karambe-phone-access1`; phone-test variant:
+`karambe-phone-access1-test`. Canonical input is `src/` plus its build
 manifest; root `index.html` is generated and checked byte-for-byte. This document
 records local engineering evidence, not a physical Android acceptance verdict.
 
@@ -57,8 +58,18 @@ SHA-256 `d691b298e2bfa561bcf8d865c49d13ae87c04d2827f4162929c5262c1599c642`.
 `node tools/verify-pages.mjs` reproduced the byte comparison, read-only selfcheck,
 fresh-install Level Select lock, public dev-flag rejection, native CDP movement
 plus CAN/cancel, and pause UI. No console errors, failed requests, or unexpected
-runtime requests were observed. Subsequent documentation commits retain these
-same game bytes; current deployment commit identity is available in Actions.
+runtime requests were observed for that completion build. Current deployment
+commit identity is available in Actions.
+
+## Phone-first testing access
+
+`playtest.html` is generated from the same canonical gameplay with an explicit
+phone-test build flag. Its first screen exposes all three level buttons on a
+phone; no download, query string, or desktop server is needed. `index.html`
+retains sequential first-run progression. Phone tests cannot write normal best
+times or unlocks. `tests/phone-access.mjs` checks touch selection and immediate
+visibility at 320×568, 390×844 and 412×915, plus storage isolation. Set
+`KARAMBE_LIVE=1` to also compare both deployed artifacts byte-for-byte.
 
 ## Limits and acceptance
 

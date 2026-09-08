@@ -4,13 +4,14 @@
   // SECTION constitution: INPUT -> ACTIONS -> SIMULATION -> RENDER.
   // Rendering never mutates gameplay or save state. Canonical source; generated index.html.
   // SAVE_VERSION changes require migration. No eval, dynamic Function, inline handlers or external runtime dependencies.
-  const BUILD_ID = 'karambe-completion2';
+  const PHONE_TEST_BUILD = __PHONE_TEST_BUILD__;
+  const BUILD_ID = __BUILD_ID__;
   const SAVE_VERSION = 1;
 
   const WORLD_W = 480;
   const WORLD_H = 860;
   const CANS_PER_LEVEL = 3;
-  const BUILD_LEVEL_SELECT = new URLSearchParams(location.search).get('dev') === '1' && (location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname));
+  const BUILD_LEVEL_SELECT = PHONE_TEST_BUILD || (new URLSearchParams(location.search).get('dev') === '1' && (location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname)));
   const ROCK_TOP_EXIT_X = 378;
   const FIXED_STEP = 1 / 120;
   const LEVELS = [
@@ -1561,7 +1562,7 @@
     const available = game.canSelectLevels();
     levelSelectBox.classList.toggle('hidden', !available);
     if (!available) { levelSelectBox.replaceChildren(); return; }
-    const titleText = BUILD_LEVEL_SELECT && !game.fullRunCompleted ? 'BUILD LEVEL SELECT' : 'LEVEL SELECT';
+    const titleText = PHONE_TEST_BUILD ? 'PHONE TEST LEVEL SELECT' : BUILD_LEVEL_SELECT && !game.fullRunCompleted ? 'BUILD LEVEL SELECT' : 'LEVEL SELECT';
     levelSelectBox.innerHTML = `<div class="level-select-title">${titleText}</div><div class="level-select-grid"></div>`;
     const grid = levelSelectBox.querySelector('.level-select-grid');
     for (const level of LEVELS) {
@@ -1590,6 +1591,13 @@
       renderLevelSelect();
       primary.textContent = 'START FULL RUN';
       primaryAction = () => { overlay.classList.remove('open'); game.start(); };
+      if (PHONE_TEST_BUILD) {
+        subtitle.textContent = 'Phone test — choose any level below.';
+        body.classList.add('hidden');
+        secondary.classList.remove('hidden');
+        secondary.textContent = 'HOW TO PLAY';
+        secondaryAction = () => { body.classList.toggle('hidden'); secondary.textContent = body.classList.contains('hidden') ? 'HOW TO PLAY' : 'HIDE HELP'; };
+      }
     } else if (mode === 'pause') {
       title.textContent = `Paused — Level ${game.level}`;
       subtitle.textContent = `Stopwatch paused at ${formatTime(game.elapsed)}.`;
@@ -1716,4 +1724,3 @@
 
   showOverlay('start');
 })();
-

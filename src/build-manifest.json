@@ -1,6 +1,8 @@
 {
   "schemaVersion": 1,
-  "buildId": "karambe-completion2",
+  "buildId": "karambe-phone-access1",
+  "phoneTestBuildId": "karambe-phone-access1-test",
+  "phoneTestArtifact": "playtest.html",
   "artifact": "index.html",
   "shell": "src/game.html",
   "game": "src/game.js",
