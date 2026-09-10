@@ -1166,6 +1166,8 @@
     originals.forEach((original, i) => {
       const element = elements.get(ids[i]);
       element.classList.add("control");
+      element.draggable = false;
+      element.setAttribute("autocomplete", "off");
       const label = element.querySelector(".sfhs-mobile-control-label");
       label.innerHTML = original.innerHTML;
       original.style.visibility = "hidden";
@@ -1176,7 +1178,7 @@
     const style = document.createElement("style");
     style.textContent = `
     #sfhs-game-controls{pointer-events:none;z-index:5;background:none}
-    #sfhs-game-controls .sfhs-mobile-control{pointer-events:auto;display:block;padding:0;opacity:1;border:1px solid rgba(255,255,255,.17);border-bottom-color:rgba(0,0,0,.48);border-radius:17px;color:#fffbe5;background:linear-gradient(var(--button-top),var(--button-bottom));box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 4px 0 #0a1e12;font-weight:900;font-size:clamp(16px,4.5vw,23px);letter-spacing:.02em;text-shadow:0 2px 0 rgba(0,0,0,.5)}
+    #sfhs-game-controls .sfhs-mobile-control{pointer-events:auto;display:block;padding:0;opacity:1;border:1px solid rgba(255,255,255,.17);border-bottom-color:rgba(0,0,0,.48);border-radius:17px;color:#fffbe5;background:linear-gradient(var(--button-top),var(--button-bottom));box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 4px 0 #0a1e12;font-weight:900;font-size:clamp(16px,4.5vw,23px);letter-spacing:.02em;text-shadow:0 2px 0 rgba(0,0,0,.5);appearance:none;-webkit-appearance:none;-webkit-touch-callout:none!important;-webkit-user-select:none!important;user-select:none!important;-webkit-user-drag:none}
     #sfhs-game-controls [data-sfhs-control-id="can"]{background:linear-gradient(#9a7a16,#5d480d)}
     #sfhs-game-controls [data-sfhs-control-id="jump"]{background:linear-gradient(#7a4331,#472318)}
     #sfhs-game-controls .sfhs-mobile-control[data-control-active="true"]{filter:none;transform:translateY(3px);box-shadow:inset 0 2px 5px rgba(0,0,0,.45),0 1px 0 #0a1e12;background:var(--button-press)}
@@ -1187,6 +1189,13 @@
       target.addEventListener(type, fn, { capture, passive: false });
       disposers.push(() => target.removeEventListener(type, fn, capture));
     };
+    const suppressHoldGesture = (event) => {
+      if (!event.target?.closest?.("#sfhs-game-controls .sfhs-mobile-control")) return;
+      event.preventDefault();
+    };
+    for (const type of ["contextmenu", "selectstart", "dragstart"]) {
+      listen(root, type, suppressHoldGesture, true);
+    }
     const keys = /* @__PURE__ */ new Set();
     let sequence = 0;
     let actions = [];
@@ -1419,7 +1428,7 @@
   (() => {
     "use strict";
     const PHONE_TEST_BUILD = true;
-    const BUILD_ID = "karambe-phone-access1-test";
+    const BUILD_ID = "karambe-haptics1-test";
     const SAVE_VERSION = 1;
     const WORLD_W = 480;
     const WORLD_H = 860;
@@ -2732,7 +2741,7 @@
         this.sound.retry();
       }
       vibrate(pattern) {
-        if (navigator.vibrate) navigator.vibrate(pattern);
+        void pattern;
       }
       addBurst(x, y, count, color) {
         for (let i = 0; i < count; i++) {

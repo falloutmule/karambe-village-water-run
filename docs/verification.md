@@ -1,7 +1,7 @@
 # Engineering verification
 
-Current candidate: `karambe-phone-access1`; phone-test variant:
-`karambe-phone-access1-test`. Canonical input is `src/` plus its build
+Current candidate: `karambe-haptics1`; phone-test variant:
+`karambe-haptics1-test`. Canonical input is `src/` plus its build
 manifest; root `index.html` is generated and checked byte-for-byte. This document
 records local engineering evidence, not a physical Android acceptance verdict.
 
@@ -70,6 +70,15 @@ retains sequential first-run progression. Phone tests cannot write normal best
 times or unlocks. `tests/phone-access.mjs` checks touch selection and immediate
 visibility at 320×568, 390×844 and 412×915, plus storage isolation. Set
 `KARAMBE_LIVE=1` to also compare both deployed artifacts byte-for-byte.
+
+## Haptic behavior
+
+The game does not request device vibration. Android hold-callout, selection and
+drag defaults are suppressed on every generated gameplay control. The control
+suite verifies those event boundaries and stubs `navigator.vibrate` to prove a
+gameplay haptic event makes zero calls. Browser automation cannot prove whether a
+specific phone's operating system adds hardware feedback outside the web page;
+that last distinction requires physical Android Chrome testing.
 
 ## Limits and acceptance
 

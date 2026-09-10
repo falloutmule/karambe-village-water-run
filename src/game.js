@@ -1102,7 +1102,9 @@
     }
 
     vibrate(pattern) {
-      if (navigator.vibrate) navigator.vibrate(pattern);
+      // Phone-first controls must never produce an ambiguous long-press buzz.
+      // Keep the event boundary so haptics can only return as a separate option.
+      void pattern;
     }
 
     addBurst(x, y, count, color) {

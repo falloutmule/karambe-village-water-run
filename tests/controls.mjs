@@ -19,6 +19,8 @@ try {
     const game = CR.game, controls = CR.controls;
     const findings = [];
     const check = (value, label) => { if (!value) throw new Error(label); findings.push(label); };
+    let vibrationRequests = 0;
+    Object.defineProperty(navigator, 'vibrate', { configurable: true, value: () => { vibrationRequests++; return true; } });
     const tick = (n = 1) => { for (let i = 0; i < n; i++) game.update(1 / 120); };
     const reset = () => { controls.releaseAll('test'); game.startLevel(1); document.getElementById('overlay').classList.remove('open'); };
     const emit = (type, id, pointerId, within = true) => {
@@ -68,6 +70,16 @@ try {
     check(game.input.right && game.player.vy < 0, 'movement + JUMP multitouch');
     emit('pointermove', 'right', 10, false); check(!game.input.right, 'movement clears immediately on leave');
     controls.releaseAll('end jump'); clean('jump release');
+    game.vibrate(30);
+    check(vibrationRequests === 0, 'gameplay haptic boundary makes no vibration request');
+    for (const id of ['left', 'right', 'can', 'jump']) {
+      const element = document.querySelector(`[data-sfhs-control-id="${id}"]`);
+      for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
+        const event = new Event(type, { bubbles: true, cancelable: true });
+        element.dispatchEvent(event);
+        check(event.defaultPrevented, `${id} suppresses ${type}`);
+      }
+    }
 
     reset();
     emit('pointerdown', 'can', 12); tick(36); emit('pointerup', 'can', 12); tick();
