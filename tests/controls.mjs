@@ -74,6 +74,7 @@ try {
     check(vibrationRequests === 0, 'gameplay haptic boundary makes no vibration request');
     for (const id of ['left', 'right', 'can', 'jump']) {
       const element = document.querySelector(`[data-sfhs-control-id="${id}"]`);
+      check(element.tagName === 'DIV' && element.getAttribute('role') === 'button', `${id} avoids native button haptics`);
       for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
         const event = new Event(type, { bubbles: true, cancelable: true });
         element.dispatchEvent(event);

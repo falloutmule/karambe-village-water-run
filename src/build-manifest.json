@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "buildId": "karambe-haptics1",
-  "phoneTestBuildId": "karambe-haptics1-test",
+  "buildId": "karambe-touch-surface1",
+  "phoneTestBuildId": "karambe-touch-surface1-test",
   "phoneTestArtifact": "playtest.html",
   "artifact": "index.html",
   "shell": "src/game.html",
@@ -9,6 +9,6 @@
   "audio": "src/audio.js",
   "controls": "src/controls.ts",
   "sfhsCommit": "391ed3afe75fa47794e7e1e9f3477e3ec53ecb12",
-  "sfhsRuntime": "vendor/sfhs/mobile-controls",
+  "sfhsRuntime": "vendor/sfhs/mobile-controls (runtime.ts product-local control-element patch)",
   "runtimeExternalDependencies": []
 }

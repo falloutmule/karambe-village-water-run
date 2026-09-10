@@ -1,6 +1,8 @@
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 const live=process.env.KARAMBE_LIVE === '1';
 const base='https://falloutmule.github.io/karambe-village-water-run/';
 const browser=await chromium.launch({channel:'chrome'});
@@ -39,6 +41,17 @@ try{
  assert.ok(await page.evaluate(()=>!CR.dev&&!CR.game));
  assert.equal(await page.locator('#levelSelectBox').isVisible(),false);
  checks.push('normal first-run release remains sequential');
+ if(!live){
+  await page.goto(pathToFileURL(path.resolve('playtest.html')).href);
+  assert.equal(await page.locator('.level-pick').count(),3);
+  for(let i=0;i<3;i++){
+   await page.locator('.level-pick').nth(i).tap();
+   assert.equal(await page.evaluate(()=>CR.game.level),i+1);
+   await page.locator('#menuBtn').tap();
+  }
+  assert.ok(await page.evaluate(()=>CR.runFullSelfCheck().pass));
+  checks.push('downloaded playtest.html boots and starts all levels over file URL');
+ }
  await page.goto(base+'playtest.html');await page.setViewportSize({width:320,height:568});
  fs.mkdirSync('test-results/phone-access',{recursive:true});
  await page.screenshot({path:'test-results/phone-access/selector.png'});

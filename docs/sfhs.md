@@ -1,11 +1,19 @@
 # SFHS integration
 
-The vendored mobile-controls source is copied without semantic edits from
+The vendored mobile-controls source began as an exact copy from
 `falloutmule/single-file-html-software` commit
 `391ed3afe75fa47794e7e1e9f3477e3ec53ecb12`, fetched from origin/main during this task.
 It is the actual production TypeScript runtime, not a reimplementation. Its MIT
 license is retained in `vendor/sfhs/LICENSE`. The shared checkout had unrelated
 dirty work and an older HEAD; vendor files were extracted from the fetched commit.
+
+`runtime.ts` has one product-local presentation patch after physical Android
+testing: discrete controls are emitted as focusable `div role="button"` surfaces
+instead of native `button` elements. The target phone applied a long-hold haptic
+through its native button path despite CSS and canceled defaults. Pointer ownership,
+capture, cancellation, snapshots, layouts and outputs are unchanged. The shared
+SFHS repository was not modified, and this local divergence is deliberately named
+in `src/build-manifest.json` rather than presented as an exact unmodified vendor copy.
 
 `src/controls.ts` maps the four established controls to SFHS `hold` primitives.
 SFHS owns contact identity, simultaneous contacts, document release, cancel, lost

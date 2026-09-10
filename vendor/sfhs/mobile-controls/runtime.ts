@@ -501,18 +501,17 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
   };
 
   const makeControlElement = (declaration: MobileControlDeclaration): HTMLElement => {
-    const discrete = declaration.type === "hold" || declaration.type === "pulse" || declaration.type === "toggle";
-    const element = document.createElement(discrete ? "button" : "div");
-    if (element instanceof HTMLButtonElement) element.type = "button";
+    // Product-local phone patch: Android applies unavoidable long-hold haptics
+    // to native <button> elements on the target device. A role-backed div keeps
+    // SFHS ownership/event semantics while avoiding that browser control path.
+    const element = document.createElement("div");
     element.className = "sfhs-mobile-control";
     element.dataset.sfhsControlId = declaration.id;
     element.dataset.sfhsControlType = declaration.type;
     element.dataset.controlActive = "false";
     element.setAttribute("aria-label", declaration.label);
-    if (!discrete) {
-      element.setAttribute("role", "button");
-      element.tabIndex = 0;
-    }
+    element.setAttribute("role", "button");
+    element.tabIndex = 0;
     const label = document.createElement("span");
     label.className = "sfhs-mobile-control-label";
     label.textContent = declaration.label;

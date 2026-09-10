@@ -1,7 +1,7 @@
 # Engineering verification
 
-Current candidate: `karambe-haptics1`; phone-test variant:
-`karambe-haptics1-test`. Canonical input is `src/` plus its build
+Current candidate: `karambe-touch-surface1`; phone-test variant:
+`karambe-touch-surface1-test`. Canonical input is `src/` plus its build
 manifest; root `index.html` is generated and checked byte-for-byte. This document
 records local engineering evidence, not a physical Android acceptance verdict.
 
@@ -73,8 +73,9 @@ visibility at 320×568, 390×844 and 412×915, plus storage isolation. Set
 
 ## Haptic behavior
 
-The game does not request device vibration. Android hold-callout, selection and
-drag defaults are suppressed on every generated gameplay control. The control
+The game does not request device vibration. Gameplay controls use accessible
+`div role="button"` touch surfaces to avoid Android's native button long-hold
+haptic path. Hold-callout, selection and drag defaults are also suppressed. The control
 suite verifies those event boundaries and stubs `navigator.vibrate` to prove a
 gameplay haptic event makes zero calls. Browser automation cannot prove whether a
 specific phone's operating system adds hardware feedback outside the web page;

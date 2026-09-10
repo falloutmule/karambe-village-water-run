@@ -898,18 +898,14 @@
       add(document, "touchcancel", finish, { passive: false });
     };
     const makeControlElement = (declaration) => {
-      const discrete = declaration.type === "hold" || declaration.type === "pulse" || declaration.type === "toggle";
-      const element = document.createElement(discrete ? "button" : "div");
-      if (element instanceof HTMLButtonElement) element.type = "button";
+      const element = document.createElement("div");
       element.className = "sfhs-mobile-control";
       element.dataset.sfhsControlId = declaration.id;
       element.dataset.sfhsControlType = declaration.type;
       element.dataset.controlActive = "false";
       element.setAttribute("aria-label", declaration.label);
-      if (!discrete) {
-        element.setAttribute("role", "button");
-        element.tabIndex = 0;
-      }
+      element.setAttribute("role", "button");
+      element.tabIndex = 0;
       const label = document.createElement("span");
       label.className = "sfhs-mobile-control-label";
       label.textContent = declaration.label;
@@ -1428,7 +1424,7 @@
   (() => {
     "use strict";
     const PHONE_TEST_BUILD = false;
-    const BUILD_ID = "karambe-haptics1";
+    const BUILD_ID = "karambe-touch-surface1";
     const SAVE_VERSION = 1;
     const WORLD_W = 480;
     const WORLD_H = 860;
