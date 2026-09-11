@@ -63,7 +63,7 @@ const checks=await page.evaluate(async()=>{
  }
  ok('three genuine L1 route deliveries',g.levelCans===3&&g.levelRetries===0&&g.canSplits.length===3,route);
  const finish=g.elapsed;await new Promise(r=>setTimeout(r,450));ok('level timer stops',g.elapsed===finish&&g.state==='singleComplete');
- ok('development cannot persist unlock',localStorage.getItem('karambe-water-run-full-clear')!=='1');
+ ok('legacy level-select gate is removed',localStorage.getItem('karambe-water-run-full-clear')===null);
  const before=JSON.stringify({p:g.player,c:g.can,s:g.snakes,r:g.rocks,e:g.elapsed,progress:g.tripProgress});g.render();g.render();ok('render does not mutate gameplay',before===JSON.stringify({p:g.player,c:g.can,s:g.snakes,r:g.rocks,e:g.elapsed,progress:g.tripProgress}));
  g.controls=controls;g.start();document.getElementById('overlay').classList.remove('open');g.render();ok('built read-only selfcheck',CR.runFullSelfCheck().pass);return checks;
 });
@@ -76,4 +76,3 @@ await page.screenshot({path:'test-results/release-menu.png'});
 fs.writeFileSync('test-results/game.json',JSON.stringify({pass:true,checks,errors,unexpectedRequests:requests,physicalPhone:'not tested'},null,2));
 console.log('PASS '+checks.length+' gameplay checks; public level selector available; no unexpected network or console errors');
 await browser.close();
-

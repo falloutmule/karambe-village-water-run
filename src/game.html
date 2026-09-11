@@ -78,7 +78,14 @@
     letter-spacing: .02em;
     text-shadow: 0 2px 0 rgba(0,0,0,.5);
     touch-action: none;
+    appearance: none;
+    -webkit-appearance: none;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -webkit-user-drag: none;
   }
+  #sfhs-game-controls { pointer-events: none; z-index: 5; background: none; }
+  #sfhs-game-controls .sfhs-mobile-control { pointer-events: auto; display: block; padding: 0; opacity: 1; }
   .control .small {
     display: block;
     margin-top: 3px;
@@ -87,10 +94,12 @@
     opacity: .83;
   }
   .control[data-control-active="true"] {
+    filter: brightness(1.13);
+    border-color: #ffe47a;
     box-shadow: inset 0 3px 8px rgba(0,0,0,.5), 0 3px 0 #0a1e12;
     background: var(--button-press);
   }
-  .sr-control {
+  .sr-control, .sr-only {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -101,8 +110,8 @@
     white-space: nowrap;
     border: 0;
   }
-  #canBtn { background: linear-gradient(#9a7a16, #5d480d); }
-  #jumpBtn { background: linear-gradient(#7a4331, #472318); }
+  [data-sfhs-control-id="can"] { background: linear-gradient(#9a7a16, #5d480d); }
+  [data-sfhs-control-id="jump"] { background: linear-gradient(#7a4331, #472318); }
   #footer {
     flex: 0 0 auto;
     min-height: calc(46px + env(safe-area-inset-bottom, 0px));
@@ -295,11 +304,11 @@
 </style>
 </head>
 <body>
-<div id="app">
+<div id="app" inert>
   <div id="stage"><canvas id="game" aria-label="Karambe Village Water Run game screen"></canvas></div>
   <div id="controls" aria-label="Game controls">
-    <button class="sr-control" id="leftBtn" aria-label="Move left with A or Left Arrow"></button>
-    <button class="sr-control" id="rightBtn" aria-label="Move right with D or Right Arrow"></button>
+    <button class="sr-control" id="leftBtn" aria-label="Move left one step; hold A or Left Arrow for continuous movement"></button>
+    <button class="sr-control" id="rightBtn" aria-label="Move right one step; hold D or Right Arrow for continuous movement"></button>
     <button class="sr-control" id="canBtn" aria-label="Use the jerry can with C or Space"></button>
     <button class="sr-control" id="jumpBtn" aria-label="Jump with W or Up Arrow"></button>
   </div>
@@ -310,7 +319,7 @@
   </div>
 </div>
 
-<div id="overlay" class="open" role="dialog" aria-modal="true" aria-labelledby="overlayTitle">
+<div id="overlay" class="open" role="dialog" aria-modal="true" aria-labelledby="overlayTitle" aria-describedby="overlaySubtitle" aria-hidden="false">
   <div class="panel">
     <h1 id="overlayTitle">Karambe Village<br>Water Run</h1>
     <h2 id="overlaySubtitle">Three levels. Three cans each. Fastest total time wins.</h2>
@@ -320,7 +329,7 @@
       <div class="rule"><b>Full can:</b> take the long path left of water. To jump, put it down, jump, then retrieve it.</div>
       <div class="rule"><b>Rocks (L2+):</b> face the rock and hold CAN to block, or place the can in its path.</div>
       <div class="rule"><b>Snakes (L3):</b> jump onto them or place a full can ahead to crush them.</div>
-      <div class="rule"><b>Fast retry:</b> delivered cans stay banked. Only time is lost. Finish all three levels to unlock Level Select.</div>
+      <div class="rule"><b>Fast retry:</b> delivered cans stay banked. Only time is lost. Level Select is always available from the menu.</div>
     </div>
     <div id="statsBox" class="stats hidden"></div>
     <div id="levelSelectBox" class="level-select hidden" aria-label="Level select"></div>
@@ -332,6 +341,7 @@
     <div id="offlineStatus" class="offline-status hidden">OFFLINE COPY — NO CONNECTION NEEDED</div>
   </div>
 </div>
+<div id="gameStatus" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 <div id="rotateNote">Turn the phone upright to play Karambe Village Water Run.</div>
 
 <!-- GAME_BUNDLE -->

@@ -1,5 +1,7 @@
 {
   "engine": "Archify 2.16.0",
+  "sourceValidation": "Both refreshed specifications pass 9/9 showcase checks with zero errors and warnings",
+  "browserVerification": "Playwright Chrome containment and screenshot fallback used after the engine visual-check process could not start its GPU on this host",
   "atlasAcceptance": "not-run",
   "views": [
     {

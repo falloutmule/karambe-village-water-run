@@ -1,6 +1,6 @@
 # Engineering verification
 
-Current candidate: `karambe-hold-suppress2`. Canonical input is `src/` plus its
+Current candidate: `karambe-cleanup1`. Canonical input is `src/` plus its
 build manifest; root `index.html` is generated and checked byte-for-byte. This document
 records local engineering evidence, not a physical Android acceptance verdict.
 
@@ -15,21 +15,22 @@ The historical ZIP and private phone screenshots are not published here.
 Repairs include actual pinned SFHS contact ownership with a product CAN adapter;
 instant current-can reset with cause-specific feedback; no backwards can placement;
 immediate rock interception by placed cans; continuous fill-to-pour hold support;
-exactly one retry when several hazards collide; explicit sequential release
-unlock; isolated development saves; fixed snake respawn times with safe
+exactly one retry when several hazards collide; immediate Level Select;
+isolated development saves; fixed snake respawn times with safe
 grace; original music/SFX and persisted mute; clearer instructions and larger HUD.
 
 ## Executed checks
 
-- `npm run build` and `npm run build:check`: build parity and standalone guards.
+- `npm run typecheck`, `npm run build` and `npm run build:check`: strict control-runtime typing, build parity and expanded standalone resource guards.
 - `npm test`: 40 gameplay checks, including placement, jump restrictions, fill,
   pouring, checkpoint retry/timer/sun, bridge, snake stomp/crush/respawn, path
   collision identity, rock continuity, overlapping-hit retry, and render purity.
   An authored L1 route delivers all three cans without position teleportation.
-- `npm run test:controls`: 144 assertions plus native Chromium CDP multitouch,
-  long hold and cancellation. Ownership, canceled/outside CAN, no phantom pickup,
-  held movement, visual clearing, blur, visibility, viewport and transitions.
-- `npm run test:release`: normal release boot, immediate Level Select, persisted
+- `npm run test:controls`: 152 assertions plus native Chromium CDP multitouch,
+  long hold, cancellation and an unfrozen real-time loop. It covers ownership,
+  event batching, every control with sound on/off, canceled/outside CAN,
+  assistive timers, visual clearing, blur, visibility, viewport and transitions.
+- `npm run test:release`: 46 checks for normal release boot, dialog focus/inert behavior, live status, immediate Level Select, persisted
   mute, audio gesture startup, all-level music, portrait control bounds, exact-byte
   download and standalone operation. A clearly identified fixture exposes game
   state for verification; normal release is tested separately.
@@ -38,13 +39,17 @@ grace; original music/SFX and persisted mute; clearer instructions and larger HU
   no teleports, invulnerability, hazard disabling, or speed changes. L2 blocks
   12 rocks; L3 blocks 18 rocks and squashes 6 snakes. This proves those authored
   routes are feasible, not that a human will achieve the automated times.
-- Browser checks report no page errors or unexpected runtime requests.
+- `node tests/phone-access.mjs`: all controls with sound on/off, trusted Touch
+  default cancellation, simultaneous contacts and clean release at 320×568,
+  390×844 and 412×915, plus the exact downloaded offline artifact.
+- Browser checks report no page errors, vibration requests or unexpected runtime requests.
 - Two native Archify diagram exports pass showcase validation and offline checks;
   see `atlas/verification.json`. Three separate staged critic passes are retained
   in `critic-1-baseline.md`, `critic-2-core.md`, and `critic-3-final.md`.
 
-Raw run evidence is ignored under `test-results/`. CI recreates proofs and deploys
-only `index.html`. SFHS mobile-control runtime provenance is verified; this product
+Raw run evidence is ignored under `test-results/`. CI recreates proofs, deploys
+only `index.html`, then retries an exact-byte live Pages check and verifies the
+production runtime. SFHS mobile-control runtime provenance is verified; this product
 uses its own small esbuild packer, not an asserted SFHS certification pipeline.
 
 The phone-polish render benchmark compares 300 direct L3 renders with the preserved
@@ -55,16 +60,12 @@ diagnostic rather than a physical-phone performance claim.
 
 ## Published artifact check
 
-On 2026-09-08, the initial verification/deploy workflow for game commit
-`06a57bae6f79a8922e160f98ab9c8da27421f494` passed every build/test/deploy step.
-The live [Pages game](https://falloutmule.github.io/karambe-village-water-run/)
-returned HTTP 200 and exactly matched root `index.html`: 143,460 bytes,
-SHA-256 `d691b298e2bfa561bcf8d865c49d13ae87c04d2827f4162929c5262c1599c642`.
-`node tools/verify-pages.mjs` reproduced the byte comparison, read-only selfcheck,
-fresh-install Level Select lock, public dev-flag rejection, native CDP movement
-plus CAN/cancel, and pause UI. No console errors, failed requests, or unexpected
-runtime requests were observed for that completion build. Current deployment
-commit identity is available in Actions.
+Every push now has separate test, deploy and live-verification jobs. The verifier
+retries until the [Pages game](https://falloutmule.github.io/karambe-village-water-run/)
+exactly matches committed `index.html`, then checks the read-only self-check,
+immediate Level Select, public dev-flag rejection, trusted Touch cancellation,
+native CDP multitouch and pause UI. It records served bytes, SHA-256, retry
+observations and runtime evidence in the workflow's `live-pages-proof` artifact.
 
 ## Phone-first testing access
 
@@ -79,10 +80,12 @@ The game does not request device vibration. Gameplay controls use neutral `div`
 touch surfaces with semantic keyboard proxies outside the touch targets. SFHS owns
 contact release, cancel-on-leave and capture cleanup directly; no synthetic browser
 cancellation events remain. Hold-callout, selection and drag defaults are suppressed.
-The `karambe-hold-suppress2` candidate also cancels the parallel native Touch Event
-defaults throughout each control contact while retaining Pointer Events as the sole
-input owner. Native CDP verifies that a two-second multitouch hold remains owned and
-that its trusted `touchstart` reaches the control root already canceled.
+The SFHS runtime owns opt-in suppression of the parallel native Touch Event defaults
+throughout each control contact while retaining Pointer Events as the sole input
+owner. It batches coalesced moves and multi-contact releases, publishes only state
+changes, and updates both layouts atomically. Native CDP verifies that a long
+multitouch hold remains owned and that trusted touch start, move, end and cancel
+events reach the control root already canceled.
 Browser automation cannot prove whether a specific phone adds hardware feedback;
 that distinction requires physical Android Chrome testing.
 

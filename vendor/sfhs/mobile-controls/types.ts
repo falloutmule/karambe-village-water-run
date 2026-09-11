@@ -78,6 +78,8 @@ export interface CreateMobileControlsOptions {
   readonly settings?: Partial<MobileControlsSettings>;
   readonly persistence?: MobileControlsPersistenceOptions;
   readonly onContactEnd?: (event: MobileControlContactEnd) => void;
+  /** Cancel the browser's parallel Touch Event defaults when Pointer Events own contacts. */
+  readonly preventNativeTouchDefaults?: boolean;
 }
 
 export interface Stick2dOutput {
@@ -143,6 +145,7 @@ export interface MobileControlsController {
     orientation: MobileControlsOrientation,
     layoutPatch: Readonly<Record<string, NormalizedRect>>
   ): MobileControlsUpdateResult;
+  updateLayouts(layoutPatch: Partial<MobileControlsLayouts>): MobileControlsUpdateResult;
   beginEdit(): void;
   commitEdit(): MobileControlsUpdateResult;
   cancelEdit(): void;

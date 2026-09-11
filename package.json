@@ -10,10 +10,12 @@
     "test:controls": "node tests/controls.mjs",
     "test:release": "node tests/release.mjs",
     "test:routes": "node tests/hazard-route.mjs",
-    "test:all": "npm run build:check && npm test && npm run test:controls && npm run test:release && npm run test:routes"
+    "typecheck": "tsc -p tsconfig.json",
+    "test:all": "npm run typecheck && npm run build:check && npm test && npm run test:controls && npm run test:release && npm run test:routes"
   },
   "devDependencies": {
     "esbuild": "0.25.9",
-    "playwright": "1.63.0"
+    "playwright": "1.63.0",
+    "typescript": "^5.9.2"
   }
 }

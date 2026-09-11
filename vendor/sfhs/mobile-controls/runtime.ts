@@ -290,13 +290,18 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
     if (dot !== null && dot !== undefined) dot.style.transform = `translate(calc(-50% + ${x * 120}%),calc(-50% + ${-y * 120}%))`;
   };
 
-  const releaseOwner = (identifier: number, kind: "release" | "cancel" = "cancel", reason = "consumer"): void => {
+  const releaseOwner = (
+    identifier: number,
+    kind: "release" | "cancel" = "cancel",
+    reason = "consumer",
+    shouldNotify = true
+  ): boolean => {
     const owner = owners.get(identifier);
-    if (owner === undefined) return;
+    if (owner === undefined) return false;
     owners.delete(identifier);
     ownerByControl.delete(owner.controlId);
     const output = outputs[owner.controlId];
-    if (output === undefined) return;
+    if (output === undefined) return false;
     switch (output.type) {
       case "stick2d":
         output.x = 0; output.y = 0; output.magnitude = 0; output.active = false;
@@ -309,7 +314,8 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
     }
     setActiveVisual(owner.controlId, false);
     options.onContactEnd?.(Object.freeze({ identifier, controlId: owner.controlId, kind, reason }));
-    notify();
+    if (shouldNotify) notify();
+    return true;
   };
 
   const isInsideControl = (controlId: string, clientX: number, clientY: number): boolean => {
@@ -364,12 +370,12 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
     return true;
   };
 
-  const moveOwner = (identifier: number, clientX: number, clientY: number): void => {
+  const moveOwner = (identifier: number, clientX: number, clientY: number, shouldNotify = true): boolean => {
     const owner = owners.get(identifier);
-    if (owner === undefined || root === undefined) return;
+    if (owner === undefined || root === undefined) return false;
     const declaration = declarationById.get(owner.controlId);
     const output = outputs[owner.controlId];
-    if (declaration === undefined || output === undefined) return;
+    if (declaration === undefined || output === undefined) return false;
     if (owner.editKind !== undefined && owner.editRect !== undefined) {
       const bounds = root.getBoundingClientRect();
       const dx = (clientX - owner.startX) / Math.max(1, bounds.width);
@@ -388,9 +394,10 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
       applyLayout();
       owner.lastX = clientX;
       owner.lastY = clientY;
-      notify();
-      return;
+      if (shouldNotify) notify();
+      return true;
     }
+    let changed = false;
     switch (output.type) {
       case "stick2d": {
         const element = elements.get(owner.controlId);
@@ -400,13 +407,16 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
         const dy = clientY - owner.startY;
         const distance = Math.hypot(dx, dy);
         const magnitude = Math.min(1, distance / radius);
-        if (distance === 0 || magnitude < profile.settings.stickDeadZone) {
-          output.x = 0; output.y = 0; output.magnitude = 0;
-        } else if (distance > 0) {
-          output.x = (dx / distance) * magnitude;
-          output.y = (-dy / distance) * magnitude;
-          output.magnitude = magnitude;
+        let nextX = 0;
+        let nextY = 0;
+        let nextMagnitude = 0;
+        if (distance !== 0 && magnitude >= profile.settings.stickDeadZone) {
+          nextX = (dx / distance) * magnitude;
+          nextY = (-dy / distance) * magnitude;
+          nextMagnitude = magnitude;
         }
+        changed = output.x !== nextX || output.y !== nextY || output.magnitude !== nextMagnitude;
+        output.x = nextX; output.y = nextY; output.magnitude = nextMagnitude;
         syncStickVisual(owner.controlId, output.x, output.y);
         break;
       }
@@ -414,8 +424,11 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
         const axis = declaration.axis ?? "x";
         const movement = axis === "x" ? clientX - owner.lastX : clientY - owner.lastY;
         const normalized = movement / owner.extent;
-        output.rawNormalizedDelta += normalized;
-        output.delta += normalized * profile.settings.relativeSensitivity;
+        if (normalized !== 0) {
+          output.rawNormalizedDelta += normalized;
+          output.delta += normalized * profile.settings.relativeSensitivity;
+          changed = true;
+        }
         break;
       }
       case "hold":
@@ -425,7 +438,8 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
     }
     owner.lastX = clientX;
     owner.lastY = clientY;
-    notify();
+    if (changed && shouldNotify) notify();
+    return changed;
   };
 
   const pointerSamples = (event: PointerEvent): readonly PointerEvent[] => {
@@ -457,16 +471,19 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
       const event = rawEvent as PointerEvent;
       if (!owners.has(event.pointerId)) return;
       event.preventDefault();
+      let changed = false;
       for (const sample of pointerSamples(event)) {
         const owner = owners.get(event.pointerId);
         const declaration = owner === undefined ? undefined : declarationById.get(owner.controlId);
         if (owner !== undefined && declaration?.cancelOnLeave === true && !isInsideControl(owner.controlId, sample.clientX, sample.clientY)) {
-          try { elements.get(owner.controlId)?.releasePointerCapture(event.pointerId); } catch { /* Ownership still clears below. */ }
-          releaseOwner(event.pointerId, "cancel", "pointer-left");
+          releaseOwner(event.pointerId, "cancel", "pointer-left", false);
+          try { elements.get(owner.controlId)?.releasePointerCapture(event.pointerId); } catch { /* Logical ownership is already clear. */ }
+          changed = true;
           break;
         }
-        moveOwner(event.pointerId, sample.clientX, sample.clientY);
+        changed = moveOwner(event.pointerId, sample.clientX, sample.clientY, false) || changed;
       }
+      if (changed) notify();
     }) as EventListener, { passive: false });
     const finish = ((rawEvent: Event) => {
       const event = rawEvent as PointerEvent;
@@ -501,42 +518,58 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
     add(document, "touchmove", ((rawEvent: Event) => {
       const event = rawEvent as TouchEvent;
       let handled = false;
+      let changed = false;
       for (const touch of Array.from(event.touches.length > 0 ? event.touches : event.changedTouches)) {
         if (!owners.has(touch.identifier)) continue;
         handled = true;
         const owner = owners.get(touch.identifier);
         const declaration = owner === undefined ? undefined : declarationById.get(owner.controlId);
         if (owner !== undefined && declaration?.cancelOnLeave === true && !isInsideControl(owner.controlId, touch.clientX, touch.clientY)) {
-          releaseOwner(touch.identifier, "cancel", "touch-left");
+          releaseOwner(touch.identifier, "cancel", "touch-left", false);
+          changed = true;
           continue;
         }
-        moveOwner(touch.identifier, touch.clientX, touch.clientY);
+        changed = moveOwner(touch.identifier, touch.clientX, touch.clientY, false) || changed;
       }
       if (handled) event.preventDefault();
+      if (changed) notify();
     }) as EventListener, { passive: false });
     const finish = ((rawEvent: Event) => {
       const event = rawEvent as TouchEvent;
       let handled = false;
+      let changed = false;
       for (const touch of Array.from(event.changedTouches)) {
         if (!owners.has(touch.identifier)) continue;
         handled = true;
         const owner = owners.get(touch.identifier)!;
         const inside = isInsideControl(owner.controlId, touch.clientX, touch.clientY);
-        releaseOwner(touch.identifier, inside ? "release" : "cancel", inside ? "touch-end" : "release-outside");
+        changed = releaseOwner(touch.identifier, inside ? "release" : "cancel", inside ? "touch-end" : "release-outside", false) || changed;
       }
       if (handled) event.preventDefault();
+      if (changed) notify();
     }) as EventListener;
     add(document, "touchend", finish, { passive: false });
     add(document, "touchcancel", ((rawEvent: Event) => {
       const event = rawEvent as TouchEvent;
       let handled = false;
+      let changed = false;
       for (const touch of Array.from(event.changedTouches)) {
         if (!owners.has(touch.identifier)) continue;
         handled = true;
-        releaseOwner(touch.identifier, "cancel", "touch-cancel");
+        changed = releaseOwner(touch.identifier, "cancel", "touch-cancel", false) || changed;
       }
       if (handled) event.preventDefault();
+      if (changed) notify();
     }) as EventListener, { passive: false });
+  };
+
+  const installNativeTouchDefaultSuppression = (): void => {
+    if (options.preventNativeTouchDefaults !== true || root === undefined) return;
+    for (const type of ["touchstart", "touchmove", "touchend", "touchcancel"]) {
+      add(root, type, ((event: Event) => {
+        if (event.cancelable) event.preventDefault();
+      }) as EventListener, { capture: true, passive: false });
+    }
   };
 
   const makeControlElement = (declaration: MobileControlDeclaration): HTMLElement => {
@@ -570,11 +603,11 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
 
   function releaseAll(reason = "consumer"): void {
     for (const [identifier, owner] of [...owners]) {
+      releaseOwner(identifier, "cancel", reason, false);
       try {
         const element = elements.get(owner.controlId);
         if (element?.hasPointerCapture(identifier)) element.releasePointerCapture(identifier);
       } catch { /* Logical ownership still clears below. */ }
-      releaseOwner(identifier, "cancel", reason);
     }
     owners.clear();
     ownerByControl.clear();
@@ -610,6 +643,7 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
       }
       lifecycle = "mounted";
       route = typeof window.PointerEvent === "function" ? "pointer" : "touch";
+      installNativeTouchDefaultSuppression();
       if (route === "pointer") installPointerRoute(); else installTouchRoute();
       add(window, "blur", (() => releaseAll("blur")) as EventListener);
       add(window, "pagehide", (() => releaseAll("pagehide")) as EventListener);
@@ -691,11 +725,15 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
       return successful();
     },
     updateLayout(targetOrientation, layoutPatch): MobileControlsUpdateResult {
+      return controller.updateLayouts({ [targetOrientation]: layoutPatch });
+    },
+    updateLayouts(layoutPatch): MobileControlsUpdateResult {
       const candidate: MobileControlsProfile = {
         ...profile,
         layouts: {
           ...profile.layouts,
-          [targetOrientation]: { ...profile.layouts[targetOrientation], ...layoutPatch }
+          ...(layoutPatch.portrait === undefined ? {} : { portrait: { ...profile.layouts.portrait, ...layoutPatch.portrait } }),
+          ...(layoutPatch.landscape === undefined ? {} : { landscape: { ...profile.layouts.landscape, ...layoutPatch.landscape } })
         }
       };
       const result = validateProfile(candidate, declarations);

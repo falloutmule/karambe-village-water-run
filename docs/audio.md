@@ -22,7 +22,7 @@ allocating a new AudioBuffer for every step or rock sound.
 
 The sequencer schedules at most two eighth-note steps per frame with an 85 ms lookahead. Delayed frames reset scheduling instead of replaying missed notes. Voices are bounded at 48 and disconnect when ended. Deterministic noise does not consume the gameplay random stream. Audio creation failures fall back to silence.
 
-`sound.diagnostics` exposes unlocks, scheduled, musicNotes, steps, activeVoices, playing, enabled, and level. Use these with AudioContext state and persisted settings to verify initialization, progression, cancellation, and mute. Counters prove scheduling behavior; listening and physical phone checks remain separate.
+`sound.diagnostics` exposes unlocks, scheduled, musicNotes, musicNoise, sfxVoices, steps, activeVoices, playing, enabled, level, contextState, and the last unlock error. Use these to verify initialization, music/effect progression, cancellation, and mute. Counters prove scheduling behavior; listening and physical phone checks remain separate.
 
 ## Focused verification
 

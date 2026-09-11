@@ -2,7 +2,7 @@
   const SCORE_ROOTS = [48, 53, 55, 50];
   const SCORE_LEAD = [12,null,19,16,null,14,12,null,9,null,12,14,16,null,19,21,19,null,16,14,null,12,9,null,7,9,null,12,14,null,12,9];
   const SCORE_REPLY = [null,7,null,9,12,null,9,null,null,4,null,7,9,null,7,null];
-  class SoundBank {
+  export class SoundBank {
     constructor() {
       this.ctx = null;
       this.master = null;
@@ -17,7 +17,7 @@
       this.nextBeat = 0;
       this.beat = 0;
       this.cooldowns = new Map();
-      this.diagnostics = { unlocks: 0, scheduled: 0, musicNotes: 0, steps: 0, activeVoices: 0, playing: false, enabled: this.enabled, level: 1 };
+      this.diagnostics = { unlocks: 0, scheduled: 0, musicNotes: 0, musicNoise: 0, sfxVoices: 0, steps: 0, activeVoices: 0, playing: false, enabled: this.enabled, level: 1, contextState: 'unavailable', lastUnlockError: '' };
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) { this.stopAll(); this.playing = false; this.diagnostics.playing = false; this.nextBeat = 0; }
       });
@@ -47,7 +47,11 @@
           this.diagnostics.unlocks++;
         }
         if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
-      } catch { /* Silence is a supported fallback. */ }
+        this.diagnostics.contextState = this.ctx.state;
+        this.diagnostics.lastUnlockError = '';
+      } catch (error) {
+        this.diagnostics.lastUnlockError = error instanceof Error ? error.message : String(error);
+      }
     }
     setEnabled(value) {
       this.enabled = Boolean(value);
@@ -70,19 +74,21 @@
       this.diagnostics.activeVoices = 0;
     }
     available() { return this.enabled && !document.hidden && this.ctx?.state === 'running' && this.voices.size < 48; }
-    track(source, amp, at, duration) {
+    track(source, amp, at, duration, category) {
       const voice = { source, amp };
       this.voices.add(voice);
       this.diagnostics.scheduled++;
+      this.diagnostics[category]++;
       this.diagnostics.activeVoices = this.voices.size;
       source.onended = () => {
         source.disconnect(); amp.disconnect(); this.voices.delete(voice);
         this.diagnostics.activeVoices = this.voices.size;
       };
       source.start(at); source.stop(at + duration + .025);
+      return true;
     }
     tone(freq = 440, duration = .08, type = 'square', gain = .045, endFreq = null, delay = 0, music = false) {
-      if (!this.available()) return;
+      if (!this.available()) return false;
       const at = this.ctx.currentTime + Math.max(0, delay);
       duration = Math.max(.025, duration);
       const osc = this.ctx.createOscillator();
@@ -94,10 +100,10 @@
       amp.gain.exponentialRampToValueAtTime(Math.max(.0001, gain), at + .006);
       amp.gain.exponentialRampToValueAtTime(.0001, at + duration);
       osc.connect(amp).connect(music ? this.musicBus : this.sfxBus);
-      this.track(osc, amp, at, duration);
+      return this.track(osc, amp, at, duration, music ? 'musicNotes' : 'sfxVoices');
     }
     noise(duration = .12, gain = .035, delay = 0, music = false) {
-      if (!this.available()) return;
+      if (!this.available()) return false;
       const at = this.ctx.currentTime + Math.max(0, delay);
       const source = this.ctx.createBufferSource();
       const amp = this.ctx.createGain();
@@ -105,7 +111,7 @@
       amp.gain.setValueAtTime(Math.max(.0001, gain), at);
       amp.gain.exponentialRampToValueAtTime(.0001, at + Math.max(.025, duration));
       source.connect(amp).connect(music ? this.musicBus : this.sfxBus);
-      this.track(source, amp, at, duration);
+      return this.track(source, amp, at, duration, music ? 'musicNoise' : 'sfxVoices');
     }
     duckMusic(amount = .42, duration = .18) {
       if (!this.musicBus || !this.ctx) return;
@@ -128,6 +134,7 @@
       if (nextLevel !== this.level) { this.beat = 0; this.nextBeat = 0; }
       this.level = nextLevel; this.playing = active;
       this.diagnostics.playing = active; this.diagnostics.level = this.level;
+      this.diagnostics.contextState = this.ctx?.state || 'unavailable';
       if (!active || !this.available()) { this.nextBeat = 0; return; }
       const now = this.ctx.currentTime;
       const spacing = 60 / [110, 118, 126][this.level - 1] / 4;
@@ -140,7 +147,7 @@
         const reply = SCORE_REPLY[this.beat % SCORE_REPLY.length];
         const hz = midi => 440 * Math.pow(2, (midi - 69) / 12);
         if (lead !== null && (this.beat % 2 === 0 || this.level > 1)) {
-          this.tone(hz(root + lead), .105, this.level === 1 ? 'triangle' : 'square', .018, null, delay, true); this.diagnostics.musicNotes++;
+          this.tone(hz(root + lead), .105, this.level === 1 ? 'triangle' : 'square', .018, null, delay, true);
         }
         if (reply !== null && this.level >= 2 && this.beat % 2 === 1) {
           this.tone(hz(root + 24 + reply), .065, 'square', .009, null, delay, true);

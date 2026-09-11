@@ -44,7 +44,7 @@ async function threeCans(page) {
 try {
   const normal = await session();
   await normal.goto(base);
-  check(await normal.evaluate(() => !CR.dev && !CR.game && !CR.controls), 'unmodified normal release has no debug access');
+  check(await normal.evaluate(() => !CR.dev && !CR.game && !CR.controls && CR.saveVersion === 1), 'unmodified normal release has schema metadata and no debug access');
   check(await normal.locator('.level-pick').count() === 3 && await normal.locator('#levelSelectBox').isVisible(), 'first-ever release exposes all three levels');
   check(await normal.locator('#downloadBtn').isVisible() && await normal.locator('#installBtn').isVisible(), 'start menu exposes offline download and home-screen help');
   check(await normal.evaluate(() => window.__audioCreated === 0), 'no AudioContext before gesture');
@@ -59,20 +59,37 @@ try {
   await normal.reload();
   check(await normal.locator('.level-pick').count() === 3 && await normal.locator('#levelSelectBox').isVisible(), 'best-time entries render without gating selection');
 
+  const accessible = await session({ manual: false });
+  await accessible.goto(base);
+  await accessible.waitForTimeout(100);
+  check(await accessible.evaluate(() => document.getElementById('app').inert && document.activeElement?.id === 'primaryBtn'), 'open dialog makes gameplay inert and focuses its primary action');
+  check(await accessible.locator('#overlay').getAttribute('aria-describedby') === 'overlaySubtitle', 'dialog title and description are associated');
+  await accessible.locator('#secondaryBtn').click();
+  check(await accessible.locator('#secondaryBtn').getAttribute('aria-expanded') === 'true' && await accessible.locator('#overlayBody').isVisible(), 'help expansion exposes its state');
+  await accessible.locator('#primaryBtn').click();
+  check(await accessible.evaluate(() => !document.getElementById('app').inert && document.activeElement?.id === 'menuBtn'), 'closing dialog restores gameplay focus');
+  await accessible.locator('#menuBtn').click();
+  await accessible.waitForTimeout(50);
+  check(await accessible.evaluate(() => document.getElementById('app').inert && document.activeElement?.id === 'primaryBtn'), 'pause dialog restores inert focus management');
+  check(await accessible.locator('#secondaryBtn').getAttribute('aria-controls') === null && await accessible.locator('#secondaryBtn').getAttribute('aria-expanded') === null, 'restart action does not expose false help-disclosure state');
+
   const sequential = await session();
   await sequential.goto(base + '/instrumented.html');
-  check(await sequential.evaluate(() => !CR.dev && CR.game.runMode === 'full' && !CR.game.fullRunCompleted), 'instrumented fixture retains normal release flags');
+  check(await sequential.evaluate(() => !CR.dev && CR.game.runMode === 'full'), 'instrumented fixture retains normal release flags');
   await sequential.locator('#primaryBtn').click();
   for (let level = 1; level <= 3; level++) {
     check(await sequential.evaluate(n => CR.game.level === n && CR.game.state === 'playing', level), `full run enters Level ${level} sequentially`);
     await threeCans(sequential);
     check(await sequential.evaluate(() => CR.game.canSplits.length === 3 && CR.game.levelCans === 3), `Level ${level} records three deliveries/splits`);
     if (level < 3) {
-      check(await sequential.evaluate(() => localStorage.getItem('karambe-water-run-full-clear') === null), `Level ${level} alone does not mark a full clear`);
+      check(await sequential.evaluate(() => localStorage.getItem('karambe-water-run-full-clear') === null), `Level ${level} leaves no obsolete selector gate`);
+      await sequential.locator('#soundBtn').focus();
+      await sequential.keyboard.press('Tab');
+      check(await sequential.evaluate(() => document.activeElement?.id === 'primaryBtn'), `Level ${level} dialog focus trap skips hidden Level Select descendants`);
       await sequential.locator('#primaryBtn').click();
     }
   }
-  check(await sequential.evaluate(() => CR.game.state === 'over' && localStorage.getItem('karambe-water-run-full-clear') === '1'), 'full sequential clear permanently persists unlock');
+  check(await sequential.evaluate(() => CR.game.state === 'over' && localStorage.getItem('karambe-water-run-full-clear') === null), 'full sequential clear leaves selector ungated');
   await sequential.goto(base);
   check(await sequential.evaluate(() => !CR.game && !CR.dev), 'post-clear reload is unmodified release');
   check(await sequential.locator('.level-pick').count() === 3 && await sequential.locator('#levelSelectBox').isVisible(), 'unmodified release reload exposes all three unlocked levels');
@@ -81,7 +98,7 @@ try {
   await single.goto(base + '/instrumented.html');
   await single.evaluate(() => CR.game.startLevel(3));
   await threeCans(single);
-  check(await single.evaluate(() => CR.game.state === 'singleComplete' && !CR.game.fullRunCompleted && localStorage.getItem('karambe-water-run-full-clear') === null), 'single-level completion cannot unlock first full run');
+  check(await single.evaluate(() => CR.game.state === 'singleComplete' && localStorage.getItem('karambe-water-run-full-clear') === null), 'single-level completion leaves selector ungated');
 
   const dev = await session({ manual: false });
   await dev.goto(base + '/?dev=1');
@@ -94,12 +111,25 @@ try {
     check(data.level === level && data.musicNotes > before && data.contextState === 'running', `original music advances in Level ${level} after gesture`);
     evidence.music.push(data);
   }
+  await dev.evaluate(() => {
+    CR.game.startLevel(1);
+    Object.assign(CR.game.player, { platform: 5, x: 60, grounded: true, climbing: null });
+    Object.assign(CR.game.can, { held: true, full: false });
+    CR.game.beginCanAction();
+    CR.game.updateCanAction(1.3);
+  });
+  await dev.waitForTimeout(50);
+  check((await dev.locator('#gameStatus').textContent())?.includes('FULL CAN'), 'live status announces completed can filling');
+  await dev.evaluate(() => CR.game.pause());
+  await dev.waitForTimeout(50);
+  check((await dev.locator('#gameStatus').textContent())?.includes('PAUSED'), 'live status announces pause');
   await dev.evaluate(() => CR.game.start());
   for (let level = 1; level <= 3; level++) {
     await threeCans(dev);
+    check((await dev.locator('#gameStatus').textContent())?.includes(level === 3 ? 'WATER RUN COMPLETE' : `LEVEL ${level} COMPLETE`), `live status announces completion ${level}`);
     if (level < 3) await dev.locator('#primaryBtn').click();
   }
-  check(await dev.evaluate(() => ['karambe-water-run-full-clear', 'karambe-water-run-best-times', 'karambe-water-run-best-total'].every(key => localStorage.getItem(key) === null)), 'dev full runs never write release unlock/bests');
+  check(await dev.evaluate(() => ['karambe-water-run-full-clear', 'karambe-water-run-best-times', 'karambe-water-run-best-total'].every(key => localStorage.getItem(key) === null)), 'dev full runs never write legacy gate or bests');
   await dev.locator('#soundBtn').click();
   check(await dev.evaluate(() => !CR.game.sound.enabled && CR.game.sound.voices.size === 0), 'mute stops active audio voices');
 

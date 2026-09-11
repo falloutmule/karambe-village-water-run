@@ -58,7 +58,7 @@
       "id": "controls",
       "type": "frontend",
       "label": "SFHS mobile controls",
-      "sublabel": "Contact ownership + release",
+      "sublabel": "Ownership + native suppression",
       "pos": [
         370,
         40
@@ -128,7 +128,7 @@
       "id": "save",
       "type": "database",
       "label": "Device persistence",
-      "sublabel": "Best times / unlock / mute",
+      "sublabel": "Best times / total / mute",
       "pos": [
         370,
         260
@@ -156,7 +156,7 @@
       "id": "build",
       "type": "backend",
       "label": "Build and verification",
-      "sublabel": "Inline source; check output",
+      "sublabel": "Typecheck; test; live verify",
       "pos": [
         370,
         470
@@ -248,7 +248,7 @@
       "title": "Output boundary",
       "items": [
         "Game events drive original synthesized sound; a valid gesture unlocks audio.",
-        "Persistent bests and full-run unlock are independent of an unfinished attempt.",
+        "Persistent best times, best total and mute are independent of an unfinished attempt.",
         "Product runtime has no external asset, script, style or font dependency."
       ]
     }

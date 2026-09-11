@@ -1,8 +1,20 @@
 import { createMobileControls } from '../vendor/sfhs/mobile-controls/index.ts';
-import type { MobileControlContactEnd } from '../vendor/sfhs/mobile-controls/types.ts';
+import type { MobileControlContactEnd, MobileControlsSnapshot } from '../vendor/sfhs/mobile-controls/types.ts';
+
+interface GameControlsTarget {
+  state: string;
+  input: { left: boolean; right: boolean };
+  player?: { jumpBuffer: number };
+  canPress?: { time: number } | null;
+  sound: { unlock(): void };
+  cancelCanAction(): void;
+  beginCanAction(): void;
+  endCanAction(commit: boolean): void;
+  jump(): void;
+}
 
 /** Product actions adapt the authoritative SFHS contact stream to game commands. */
-export function createGameControls(game: any) {
+export function createGameControls(game: GameControlsTarget) {
   const ids = ['left', 'right', 'can', 'jump'] as const;
   const labels = ['Move left', 'Move right', 'Use jerry can', 'Jump'];
   const icons = ['◀', '▶', '▣', '↑'];
@@ -28,6 +40,7 @@ export function createGameControls(game: any) {
       layout: { portrait: placeholder, landscape: placeholder }
     })),
     settings: { opacity: 1 },
+    preventNativeTouchDefaults: true,
     onContactEnd: event => handleContactEnd(event)
   });
   mobile.mount(root);
@@ -40,16 +53,6 @@ export function createGameControls(game: any) {
     const label = element.querySelector('.sfhs-mobile-control-label')!;
     label.replaceChildren(document.createTextNode(icons[index]), Object.assign(document.createElement('span'), { className: 'small', textContent: names[index] }));
   });
-  const style = document.createElement('style');
-  style.textContent = `
-    #sfhs-game-controls{pointer-events:none;z-index:5;background:none}
-    #sfhs-game-controls .sfhs-mobile-control{pointer-events:auto;display:block;padding:0;opacity:1;border:1px solid rgba(255,255,255,.17);border-bottom-color:rgba(0,0,0,.48);border-radius:17px;color:#fffbe5;background:linear-gradient(var(--button-top),var(--button-bottom));box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 4px 0 #0a1e12;font-weight:900;font-size:clamp(16px,4.5vw,23px);letter-spacing:.02em;text-shadow:0 2px 0 rgba(0,0,0,.5);appearance:none;-webkit-appearance:none;-webkit-touch-callout:none!important;-webkit-user-select:none!important;user-select:none!important;-webkit-user-drag:none}
-    #sfhs-game-controls [data-sfhs-control-id="can"]{background:linear-gradient(#9a7a16,#5d480d)}
-    #sfhs-game-controls [data-sfhs-control-id="jump"]{background:linear-gradient(#7a4331,#472318)}
-    #sfhs-game-controls .sfhs-mobile-control[data-control-active="true"]{filter:brightness(1.13);border-color:#ffe47a;box-shadow:inset 0 3px 8px rgba(0,0,0,.5),0 3px 0 #0a1e12;background:var(--button-press)}
-  `;
-  root.append(style);
-
   const keys = new Set<string>();
   const disposers: (() => void)[] = [];
   const listen = (target: EventTarget, type: string, fn: EventListener, options: AddEventListenerOptions | boolean = false) => {
@@ -59,12 +62,6 @@ export function createGameControls(game: any) {
   for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
     listen(root, type, (event => event.preventDefault()) as EventListener, { capture: true, passive: false });
   }
-  // Android Chromium can continue native long-press handling alongside the
-  // authoritative Pointer Event stream. Cancel its parallel Touch Events at
-  // the control boundary so a held game contact has no browser default action.
-  for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) {
-    listen(root, type, (event => { if (event.cancelable) event.preventDefault(); }) as EventListener, { capture: true, passive: false });
-  }
   const playing = () => game.state === 'playing';
   const canKeys = () => keys.has(' ') || keys.has('c');
   let sequence = 0;
@@ -73,6 +70,8 @@ export function createGameControls(game: any) {
   let previous = new Map<number, string>();
   let clearing = false;
   let disposed = false;
+  const assistiveMoves = new Set<'left' | 'right'>();
+  const assistiveTimers = new Map<'left' | 'right', number>();
 
   const clearCan = () => {
     if (transaction) transaction.canceled = true;
@@ -91,16 +90,23 @@ export function createGameControls(game: any) {
     transaction.ended = performance.now();
     actions.push({ kind: 'end', source, transaction });
   };
-  const movement = () => {
-    const output: any = mobile.read().controls;
-    game.input.left = playing() && (keys.has('a') || keys.has('arrowleft') || output.left.pressed);
-    game.input.right = playing() && (keys.has('d') || keys.has('arrowright') || output.right.pressed);
+  const movement = (snapshot: MobileControlsSnapshot = mobile.read()) => {
+    const left = snapshot.controls.left;
+    const right = snapshot.controls.right;
+    game.input.left = playing() && (keys.has('a') || keys.has('arrowleft') || assistiveMoves.has('left') || (left.type === 'hold' && left.pressed));
+    game.input.right = playing() && (keys.has('d') || keys.has('arrowright') || assistiveMoves.has('right') || (right.type === 'hold' && right.pressed));
+  };
+  const clearAssistiveMoves = () => {
+    for (const timer of assistiveTimers.values()) clearTimeout(timer);
+    assistiveTimers.clear();
+    assistiveMoves.clear();
   };
   function releaseAll(reason = 'consumer') {
     if (clearing) return;
     clearing = true;
     actions = [];
     keys.clear();
+    clearAssistiveMoves();
     clearCan();
     mobile.releaseAll(reason);
     previous.clear();
@@ -126,7 +132,7 @@ export function createGameControls(game: any) {
       if (control === 'jump') actions.push({ kind: 'jump', source });
     }
     previous = current;
-    movement();
+    movement(snapshot);
   });
 
   const supportedKeys = new Set(['arrowleft', 'arrowright', 'arrowup', 'a', 'd', 'w', ' ', 'c', 'escape']);
@@ -138,10 +144,15 @@ export function createGameControls(game: any) {
       if (id === 'jump') actions.push({ kind: 'jump', source: 'assistive:jump' });
       if (id === 'can') { beginCan('assistive:can'); endCan('assistive:can', true); }
       if (id === 'left' || id === 'right') {
-        const key = id === 'left' ? 'arrowleft' : 'arrowright';
-        keys.add(key);
+        const existing = assistiveTimers.get(id);
+        if (existing !== undefined) clearTimeout(existing);
+        assistiveMoves.add(id);
         movement();
-        setTimeout(() => { keys.delete(key); movement(); }, 180);
+        assistiveTimers.set(id, window.setTimeout(() => {
+          assistiveTimers.delete(id);
+          assistiveMoves.delete(id);
+          if (!disposed) movement();
+        }, 180));
       }
     }) as EventListener);
   });
@@ -188,27 +199,31 @@ export function createGameControls(game: any) {
       patch[id] = { x: (cursor - viewport.left) / viewport.width, y: (bar.top + top - viewport.top) / viewport.height, width: width / viewport.width, height: (bar.height - top - bottom) / viewport.height };
       cursor += width + gap;
     });
-    mobile.updateLayout('portrait', patch);
-    mobile.updateLayout('landscape', patch);
+    mobile.updateLayouts({ portrait: patch, landscape: patch });
   };
-  listen(window, 'resize', layout as EventListener);
-  listen(window, 'orientationchange', layout as EventListener);
+  let layoutFrame = 0;
+  const scheduleLayout = () => {
+    if (disposed || layoutFrame) return;
+    layoutFrame = requestAnimationFrame(() => { layoutFrame = 0; layout(); });
+  };
+  listen(window, 'resize', scheduleLayout as EventListener);
+  listen(window, 'orientationchange', scheduleLayout as EventListener);
   if (window.visualViewport) {
-    listen(window.visualViewport, 'resize', layout as EventListener);
-    listen(window.visualViewport, 'scroll', layout as EventListener);
+    listen(window.visualViewport, 'resize', scheduleLayout as EventListener);
+    listen(window.visualViewport, 'scroll', scheduleLayout as EventListener);
   }
-  const observer = new ResizeObserver(layout);
+  const observer = new ResizeObserver(scheduleLayout);
   observer.observe(controlsBar);
   layout();
 
   return {
     flush() {
       if (!playing()) {
-        if (mobile.read().activePointers.length || actions.length || keys.size) releaseAll('not-playing');
+        if (mobile.read().activePointers.length || actions.length || keys.size || assistiveMoves.size) releaseAll('not-playing');
         return mobile.read();
       }
       const snapshot = mobile.flush();
-      movement();
+      movement(snapshot);
       const pending = actions;
       actions = [];
       for (const action of pending) {
@@ -230,6 +245,7 @@ export function createGameControls(game: any) {
     dispose() {
       releaseAll('dispose');
       disposed = true;
+      if (layoutFrame) cancelAnimationFrame(layoutFrame);
       unsubscribe();
       observer.disconnect();
       disposers.forEach(dispose => dispose());

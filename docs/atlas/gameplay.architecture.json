@@ -131,7 +131,7 @@
       "id": "progression",
       "type": "backend",
       "label": "Level progression",
-      "sublabel": "L1 → L2 → L3; then unlock",
+      "sublabel": "L1 → L2 → L3; select anytime",
       "pos": [
         350,
         240
@@ -276,7 +276,7 @@
       "items": [
         "Retry clears contacts, resets hazards and trip progress; time and bank stay.",
         "Sun rolls back only within the unfinished can segment.",
-        "Completing the sequential full run permanently unlocks Level Select."
+        "Level Select is available at launch and from the menu; full-run order remains L1 → L2 → L3."
       ]
     }
   ]

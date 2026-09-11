@@ -1,11 +1,9 @@
 {
   "schemaVersion": 1,
-  "buildId": "karambe-hold-suppress2",
+  "buildId": "karambe-cleanup1",
   "artifact": "index.html",
   "shell": "src/game.html",
-  "game": "src/game.js",
-  "audio": "src/audio.js",
-  "controls": "src/controls.ts",
+  "entry": "src/main.js",
   "sfhsCommit": "391ed3afe75fa47794e7e1e9f3477e3ec53ecb12",
   "sfhsRuntime": "vendor/sfhs/mobile-controls (product-local neutral surface and contact-end extension)",
   "runtimeExternalDependencies": []

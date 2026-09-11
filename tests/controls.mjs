@@ -4,6 +4,16 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 
+const runtimeSource = fs.readFileSync('vendor/sfhs/mobile-controls/runtime.ts', 'utf8');
+const typesSource = fs.readFileSync('vendor/sfhs/mobile-controls/types.ts', 'utf8');
+const adapterSource = fs.readFileSync('src/controls.ts', 'utf8');
+assert.match(typesSource, /preventNativeTouchDefaults\?: boolean/, 'native touch suppression is an opt-in SFHS option');
+assert.match(typesSource, /updateLayouts\(layoutPatch: Partial<MobileControlsLayouts>\)/, 'SFHS exposes atomic multi-orientation layout updates');
+assert.match(runtimeSource, /options\.preventNativeTouchDefaults !== true/, 'native touch suppression defaults off');
+assert.match(adapterSource, /preventNativeTouchDefaults: true/, 'Karambe opts into native touch suppression');
+assert.match(adapterSource, /mobile\.updateLayouts\(\{ portrait: patch, landscape: patch \}\)/, 'Karambe updates both layouts atomically');
+assert.doesNotMatch(adapterSource, /for \(const type of \['touchstart'/, 'product adapter has no duplicate Touch Event suppression route');
+
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const context = await browser.newContext({ viewport: { width: 412, height: 915 }, isMobile: true, hasTouch: true });
 const page = await context.newPage();
@@ -30,6 +40,16 @@ try {
       target.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerType: 'touch', pointerId, button: 0,
         clientX: within ? bounds.left + bounds.width / 2 : 1, clientY: within ? bounds.top + bounds.height / 2 : 1 }));
     };
+    const emitCoalesced = (id, pointerId, samples) => {
+      const element = document.querySelector(`[data-sfhs-control-id="${id}"]`);
+      const bounds = element.getBoundingClientRect();
+      const event = new PointerEvent('pointermove', { bubbles: true, cancelable: true, pointerType: 'touch', pointerId,
+        clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 });
+      Object.defineProperty(event, 'getCoalescedEvents', { value: () => samples.map(([dx, dy]) => new PointerEvent('pointermove', {
+        pointerType: 'touch', pointerId, clientX: bounds.left + bounds.width / 2 + dx, clientY: bounds.top + bounds.height / 2 + dy
+      })) });
+      document.dispatchEvent(event);
+    };
     const visualMatch = () => {
       const state = controls.read().mobile;
       for (const element of document.querySelectorAll('[data-sfhs-control-id]')) {
@@ -42,6 +62,15 @@ try {
       check(!controls.read().mobile.activePointers.length && !controls.read().queuedActions.length, `${label}: ownership/queue clear`);
       visualMatch();
     };
+    reset();
+    emit('pointerdown', 'left', 41); emit('pointerdown', 'can', 42);
+    const heldSequence = controls.read().mobile.sequence;
+    emitCoalesced('left', 41, [[0, 0], [1, 0], [2, 0], [0, 0]]);
+    check(controls.read().mobile.sequence === heldSequence, 'coalesced hold moves do not publish unchanged snapshots');
+    controls.releaseAll('sequence-check');
+    check(controls.read().mobile.sequence === heldSequence + 1, 'multitouch releaseAll publishes exactly one snapshot');
+    clean('batched release');
+
     reset();
     emit('pointerdown', 'left', 1); emit('pointerdown', 'can', 2); tick();
     check(game.input.left && !!game.canPress, 'movement + CAN multitouch'); visualMatch();
@@ -70,7 +99,6 @@ try {
     check(game.input.right && game.player.vy < 0, 'movement + JUMP multitouch');
     emit('pointermove', 'right', 10, false); check(!game.input.right, 'movement clears immediately on leave');
     controls.releaseAll('end jump'); clean('jump release');
-    game.vibrate(30);
     check(vibrationRequests === 0, 'gameplay haptic boundary makes no vibration request');
     for (const id of ['left', 'right', 'can', 'jump']) {
       const element = document.querySelector(`[data-sfhs-control-id="${id}"]`);
@@ -133,21 +161,116 @@ try {
     window.__holdEvents = [];
     window.__touchDefaults = [];
     for (const type of ['contextmenu', 'pointercancel', 'lostpointercapture']) document.addEventListener(type, event => window.__holdEvents.push({ type, trusted: event.isTrusted }), true);
-    document.getElementById('sfhs-game-controls').addEventListener('touchstart', event => window.__touchDefaults.push({ trusted: event.isTrusted, prevented: event.defaultPrevented }), { passive: true });
+    for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) {
+      document.getElementById('sfhs-game-controls').addEventListener(type, event => window.__touchDefaults.push({ type, trusted: event.isTrusted, cancelable: event.cancelable, prevented: event.defaultPrevented }), { passive: true });
+    }
   });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: touchPoints.map(point => ({ ...point, x: point.x + 1 })) });
   await page.waitForTimeout(2100);
   const held = await page.evaluate(() => ({ owners: CR.controls.read().mobile.activePointers.length, events: window.__holdEvents, touchDefaults: window.__touchDefaults }));
   assert.equal(held.owners, 2, 'two-second hold remains owned');
   assert.deepEqual(held.events, [], 'two-second hold emits no browser gesture or cancellation events');
-  assert.ok(held.touchDefaults.length > 0 && held.touchDefaults.every(event => event.trusted && event.prevented), 'native touchstart defaults are canceled alongside pointer ownership');
+  assert.ok(held.touchDefaults.some(event => event.type === 'touchstart') && held.touchDefaults.some(event => event.type === 'touchmove'), 'trusted native touch start/move events are observed');
+  assert.ok(held.touchDefaults.every(event => event.trusted && (!event.cancelable || event.prevented)), 'cancelable native touch defaults are canceled alongside pointer ownership');
   const active = await page.evaluate(() => { CR.controls.flush(); CR.game.update(1 / 120); return { owners: CR.controls.read().mobile.activePointers.length, right: CR.game.input.right, can: !!CR.game.canPress }; });
   assert.deepEqual(active, { owners: 2, right: true, can: true }, 'real CDP multitouch');
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
   const released = await page.evaluate(() => ({ owners: CR.controls.read().mobile.activePointers.length, right: CR.game.input.right, can: !!CR.game.canPress, held: CR.game.can.held }));
   assert.deepEqual(released, { owners: 0, right: false, can: false, held: true }, 'real CDP touchCancel does not place can');
+  const endPoint = touchPoints[0];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [endPoint] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  const nativeDefaults = await page.evaluate(() => window.__touchDefaults);
+  for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) {
+    assert.ok(nativeDefaults.some(event => event.type === type && event.trusted && (!event.cancelable || event.prevented)), `trusted native ${type} default is observed and canceled when cancelable`);
+  }
+
+  // A separate page keeps the real animation loop running so held controls,
+  // audio gating, and sequence growth are exercised together.
+  const realtimeContext = await browser.newContext({ viewport: { width: 412, height: 915 }, isMobile: true, hasTouch: true });
+  const realtimePage = await realtimeContext.newPage();
+  const realtimeErrors = [];
+  realtimePage.on('pageerror', error => realtimeErrors.push(error.message));
+  await realtimePage.addInitScript(() => {
+    window.__vibrationRequests = 0;
+    Object.defineProperty(navigator, 'vibrate', { configurable: true, value: () => { window.__vibrationRequests++; return true; } });
+  });
+  await realtimePage.goto(pathToFileURL(path.resolve('index.html')).href + '?dev=1');
+  await realtimePage.waitForFunction(() => window.CR?.controls);
+  await realtimePage.evaluate(() => { CR.game.startLevel(1); document.getElementById('overlay').classList.remove('open'); });
+  const realtimeCdp = await realtimeContext.newCDPSession(realtimePage);
+  const realtimePoints = await realtimePage.evaluate(() => Object.fromEntries(['left', 'right', 'can', 'jump'].map((id, index) => {
+    const rect = document.querySelector(`[data-sfhs-control-id="${id}"]`).getBoundingClientRect();
+    return [id, { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, id: index + 71, radiusX: 5, radiusY: 5, force: 1 }];
+  })));
+  const holdEachControl = async enabled => {
+    await realtimePage.evaluate(value => {
+      CR.controls.releaseAll('realtime-mode');
+      CR.game.startLevel(1);
+      CR.game.sound.setEnabled(value);
+    }, enabled);
+    const before = await realtimePage.evaluate(() => ({ ...CR.game.sound.diagnostics }));
+    for (const id of ['left', 'right', 'can', 'jump']) {
+      await realtimeCdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [realtimePoints[id]] });
+      await realtimePage.waitForTimeout(220);
+      assert.equal(await realtimePage.evaluate(() => CR.controls.read().mobile.activePointers.length), 1, `${id} remains owned with SOUND ${enabled ? 'ON' : 'OFF'}`);
+      await realtimeCdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await realtimePage.waitForTimeout(40);
+    }
+    return realtimePage.evaluate(start => ({
+      before: start,
+      after: { ...CR.game.sound.diagnostics },
+      vibrations: window.__vibrationRequests,
+      owners: CR.controls.read().mobile.activePointers.length
+    }), before);
+  };
+  const mutedCounters = await holdEachControl(false);
+  assert.equal(mutedCounters.after.scheduled, mutedCounters.before.scheduled, 'SOUND OFF schedules no audio voices during held controls');
+  assert.equal(mutedCounters.after.unlocks, mutedCounters.before.unlocks, 'SOUND OFF performs no audio unlock');
+  assert.equal(mutedCounters.owners, 0, 'SOUND OFF control sequence releases ownership');
+  const audibleCounters = await holdEachControl(true);
+  assert.ok(audibleCounters.after.unlocks > audibleCounters.before.unlocks || audibleCounters.after.scheduled > audibleCounters.before.scheduled, 'SOUND ON records an unlock or scheduled voice');
+  assert.equal(audibleCounters.owners, 0, 'SOUND ON control sequence releases ownership');
+
+  await realtimePage.evaluate(() => { CR.controls.releaseAll('realtime-multitouch'); CR.game.startLevel(1); CR.game.sound.setEnabled(true); });
+  const realtimeStart = await realtimePage.evaluate(() => ({ sequence: CR.controls.read().mobile.sequence, elapsed: CR.game.elapsed }));
+  await realtimeCdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [realtimePoints.right, realtimePoints.can] });
+  await realtimePage.waitForTimeout(1000);
+  const realtimeHeld = await realtimePage.evaluate(start => ({
+    owners: CR.controls.read().mobile.activePointers.length,
+    right: CR.game.input.right,
+    can: Boolean(CR.game.canPress),
+    elapsedDelta: CR.game.elapsed - start.elapsed,
+    sequenceDelta: CR.controls.read().mobile.sequence - start.sequence
+  }), realtimeStart);
+  assert.equal(realtimeHeld.owners, 2, 'unfrozen real-time multitouch remains owned');
+  assert.equal(realtimeHeld.right, true, 'unfrozen real-time movement remains active');
+  assert.equal(realtimeHeld.can, true, 'unfrozen real-time CAN remains active');
+  assert.ok(realtimeHeld.elapsedDelta > .5, 'unfrozen game loop advances while controls are held');
+  assert.ok(realtimeHeld.sequenceDelta >= 20 && realtimeHeld.sequenceDelta <= 180, `real-time control sequence stays within frame bounds (${realtimeHeld.sequenceDelta})`);
+  await realtimeCdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+  const realtimeReleased = await realtimePage.evaluate(() => ({
+    owners: CR.controls.read().mobile.activePointers.length,
+    right: CR.game.input.right,
+    can: Boolean(CR.game.canPress),
+    vibrations: window.__vibrationRequests
+  }));
+  assert.deepEqual(realtimeReleased, { owners: 0, right: false, can: false, vibrations: 0 }, 'unfrozen cancel clears multitouch without vibration requests');
+  await realtimePage.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
+    document.getElementById('leftBtn').click();
+  });
+  await realtimePage.waitForTimeout(240);
+  assert.equal(await realtimePage.evaluate(() => CR.game.input.left), true, 'assistive movement timeout cannot erase a physical keyboard hold');
+  await realtimePage.evaluate(() => window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowLeft', bubbles: true, cancelable: true })));
+  await realtimePage.evaluate(() => { document.getElementById('rightBtn').click(); CR.controls.dispose(); });
+  await realtimePage.waitForTimeout(240);
+  assert.equal(await realtimePage.locator('#sfhs-game-controls').count(), 0, 'disposing controls clears pending assistive movement lifecycle');
+  assert.deepEqual(realtimeErrors, [], 'unfrozen page errors');
+  await realtimeContext.close();
   assert.deepEqual(errors, [], 'page errors');
   fs.mkdirSync('test-results/controls', { recursive: true });
-  fs.writeFileSync('test-results/controls/proof.json', JSON.stringify({ pass: true, ...proof, nativeLongHold: held, nativeMultitouch: active, nativeCancel: released, errors }, null, 2));
-  console.log(`PASS controls: ${proof.checks} assertions plus native CDP long-hold/multitouch/cancel`);
+  fs.writeFileSync('test-results/controls/proof.json', JSON.stringify({ pass: true, ...proof, nativeLongHold: held, nativeMultitouch: active, nativeCancel: released, nativeTouchDefaults: nativeDefaults, realtime: { mutedCounters, audibleCounters, held: realtimeHeld, released: realtimeReleased }, errors }, null, 2));
+  console.log(`PASS controls: ${proof.checks} assertions plus deterministic and unfrozen native CDP hold/multitouch/cancel`);
 } finally { await browser.close(); }
