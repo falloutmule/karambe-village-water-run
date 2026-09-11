@@ -1,6 +1,6 @@
 # Engineering verification
 
-Current candidate: `karambe-hold-suppress1`. Canonical input is `src/` plus its
+Current candidate: `karambe-hold-suppress2`. Canonical input is `src/` plus its
 build manifest; root `index.html` is generated and checked byte-for-byte. This document
 records local engineering evidence, not a physical Android acceptance verdict.
 
@@ -79,7 +79,7 @@ The game does not request device vibration. Gameplay controls use neutral `div`
 touch surfaces with semantic keyboard proxies outside the touch targets. SFHS owns
 contact release, cancel-on-leave and capture cleanup directly; no synthetic browser
 cancellation events remain. Hold-callout, selection and drag defaults are suppressed.
-The `karambe-hold-suppress1` candidate also cancels the parallel native Touch Event
+The `karambe-hold-suppress2` candidate also cancels the parallel native Touch Event
 defaults throughout each control contact while retaining Pointer Events as the sole
 input owner. Native CDP verifies that a two-second multitouch hold remains owned and
 that its trusted `touchstart` reaches the control root already canceled.

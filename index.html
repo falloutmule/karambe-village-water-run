@@ -1269,7 +1269,9 @@
       listen(root, type, ((event) => event.preventDefault()), { capture: true, passive: false });
     }
     for (const type of ["touchstart", "touchmove", "touchend", "touchcancel"]) {
-      listen(root, type, ((event) => event.preventDefault()), { capture: true, passive: false });
+      listen(root, type, ((event) => {
+        if (event.cancelable) event.preventDefault();
+      }), { capture: true, passive: false });
     }
     const playing = () => game.state === "playing";
     const canKeys = () => keys.has(" ") || keys.has("c");
@@ -1460,7 +1462,7 @@
   // <stdin>
   (() => {
     "use strict";
-    const BUILD_ID = "karambe-hold-suppress1";
+    const BUILD_ID = "karambe-hold-suppress2";
     const SAVE_VERSION = 1;
     const WORLD_W = 480;
     const WORLD_H = 860;

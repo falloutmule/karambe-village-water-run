@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "buildId": "karambe-hold-suppress1",
+  "buildId": "karambe-hold-suppress2",
   "artifact": "index.html",
   "shell": "src/game.html",
   "game": "src/game.js",

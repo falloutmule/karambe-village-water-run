@@ -63,7 +63,7 @@ export function createGameControls(game: any) {
   // authoritative Pointer Event stream. Cancel its parallel Touch Events at
   // the control boundary so a held game contact has no browser default action.
   for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) {
-    listen(root, type, (event => event.preventDefault()) as EventListener, { capture: true, passive: false });
+    listen(root, type, (event => { if (event.cancelable) event.preventDefault(); }) as EventListener, { capture: true, passive: false });
   }
   const playing = () => game.state === 'playing';
   const canKeys = () => keys.has(' ') || keys.has('c');
