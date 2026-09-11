@@ -14,7 +14,7 @@ interface GameControlsTarget {
 }
 
 /** Product actions adapt the authoritative SFHS contact stream to game commands. */
-export function createGameControls(game: GameControlsTarget) {
+export function createGameControls(game: GameControlsTarget, options: { clicky?: boolean } = {}) {
   const ids = ['left', 'right', 'can', 'jump'] as const;
   const labels = ['Move left', 'Move right', 'Use jerry can', 'Jump'];
   const icons = ['◀', '▶', '▣', '↑'];
@@ -41,9 +41,11 @@ export function createGameControls(game: GameControlsTarget) {
     })),
     settings: { opacity: 1 },
     preventNativeTouchDefaults: true,
+    leaveTolerancePx: options.clicky ? 18 : 0,
     onContactEnd: event => handleContactEnd(event)
   });
   mobile.mount(root);
+  root.dataset.surface = options.clicky ? 'clicky' : 'standard';
 
   const elements = new Map(ids.map(id => [id, root.querySelector<HTMLElement>(`[data-sfhs-control-id="${id}"]`)!]));
   ids.forEach((id, index) => {

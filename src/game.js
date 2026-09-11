@@ -8,6 +8,7 @@ export const WORLD_W = 480;
 export const WORLD_H = 860;
 export const CANS_PER_LEVEL = 3;
 export const DEV_MENU = new URLSearchParams(location.search).get('dev') === '1';
+export const CLICKY_TEST = new URLSearchParams(location.search).get('clicky') === '1';
 export const DEV_ACCESS = DEV_MENU && (location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname));
 export const ROCK_TOP_EXIT_X = 378;
 export const FIXED_STEP = 1 / 120;

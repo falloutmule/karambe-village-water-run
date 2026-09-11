@@ -99,6 +99,69 @@
     box-shadow: inset 0 3px 8px rgba(0,0,0,.5), 0 3px 0 #0a1e12;
     background: var(--button-press);
   }
+  /* Imaginarium clicky-control test: raised depth, short press travel, and a slower spring release. */
+  #sfhs-game-controls[data-surface="clicky"] .sfhs-mobile-control.control {
+    --clicky-surface: #85cce4;
+    --clicky-depth: #4b96b1;
+    --clicky-edge: #e2f8ff;
+    --clicky-ink: #34304b;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--clicky-ink);
+    filter: none;
+    text-shadow: 0 1px 0 rgba(255,255,255,.42);
+    overflow: visible;
+  }
+  #sfhs-game-controls[data-surface="clicky"] [data-sfhs-control-id="can"] {
+    --clicky-surface: #ffd27a; --clicky-depth: #d39a38; --clicky-edge: #fff1be;
+  }
+  #sfhs-game-controls[data-surface="clicky"] [data-sfhs-control-id="jump"] {
+    --clicky-surface: #8ed5c0; --clicky-depth: #4f9b86; --clicky-edge: #dffff5;
+  }
+  #sfhs-game-controls[data-surface="clicky"] .sfhs-mobile-control.control::before,
+  #sfhs-game-controls[data-surface="clicky"] .sfhs-mobile-control.control::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    pointer-events: none;
+  }
+  #sfhs-game-controls[data-surface="clicky"] .sfhs-mobile-control.control::before {
+    z-index: 0;
+    background: var(--clicky-depth);
+    border: 3px solid color-mix(in srgb, var(--clicky-depth) 78%, #25223b);
+    transform: translateY(6px);
+    box-shadow: 0 8px 13px rgba(0,0,0,.24);
+  }
+  #sfhs-game-controls[data-surface="clicky"] .sfhs-mobile-control.control::after {
+    z-index: 1;
+    box-sizing: border-box;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--clicky-edge) 42%, var(--clicky-surface)), var(--clicky-surface));
+    border: 3px solid color-mix(in srgb, var(--clicky-depth) 70%, #35314d);
+    box-shadow: inset 0 3px 0 color-mix(in srgb, var(--clicky-edge) 74%, transparent);
+    transform: translateY(0) scale(1);
+    transition: transform 150ms cubic-bezier(.2,.9,.22,1.2), filter 150ms ease;
+  }
+  #sfhs-game-controls[data-surface="clicky"] .sfhs-mobile-control-label {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transform: translateY(0) scale(1);
+    transition: transform 150ms cubic-bezier(.2,.9,.22,1.2);
+  }
+  #sfhs-game-controls[data-surface="clicky"] .sfhs-mobile-control.control[data-control-active="true"]::after,
+  #sfhs-game-controls[data-surface="clicky"] .sfhs-mobile-control.control[data-control-active="true"] .sfhs-mobile-control-label {
+    transform: translateY(5px) scale(.99,.965);
+    transition-duration: 55ms;
+  }
+  #sfhs-game-controls[data-surface="clicky"] .sfhs-mobile-control.control[data-control-active="true"]::after {
+    filter: brightness(1.05);
+  }
   .sr-control, .sr-only {
     position: absolute;
     width: 1px;
@@ -299,7 +362,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     #overlay { backdrop-filter: none; }
-    .control, .action, .level-pick { transition: none !important; }
+    .control, .control::after, .control .sfhs-mobile-control-label, .action, .level-pick { transition: none !important; }
   }
 </style>
 </head>

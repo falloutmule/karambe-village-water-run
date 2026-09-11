@@ -117,6 +117,9 @@ function deepSnapshot(
 
 export function createMobileControlsRuntime(options: CreateMobileControlsOptions): MobileControlsController {
   validateDeclarations(options.controls);
+  const leaveTolerancePx = Number.isFinite(options.leaveTolerancePx)
+    ? Math.min(48, Math.max(0, options.leaveTolerancePx ?? 0))
+    : 0;
   const declarations = Object.freeze(options.controls.map((entry) => Object.freeze({ ...entry })));
   const declarationById = new Map(declarations.map((entry) => [entry.id, entry]));
   const defaultProfile = createDefaultProfile(declarations, options.settings);
@@ -318,9 +321,11 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
     return true;
   };
 
-  const isInsideControl = (controlId: string, clientX: number, clientY: number): boolean => {
+  const isInsideControl = (controlId: string, clientX: number, clientY: number, tolerance = 0): boolean => {
     const bounds = elements.get(controlId)?.getBoundingClientRect();
-    return bounds !== undefined && clientX >= bounds.left && clientX <= bounds.right && clientY >= bounds.top && clientY <= bounds.bottom;
+    return bounds !== undefined
+      && clientX >= bounds.left - tolerance && clientX <= bounds.right + tolerance
+      && clientY >= bounds.top - tolerance && clientY <= bounds.bottom + tolerance;
   };
 
   const beginOwner = (
@@ -475,7 +480,7 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
       for (const sample of pointerSamples(event)) {
         const owner = owners.get(event.pointerId);
         const declaration = owner === undefined ? undefined : declarationById.get(owner.controlId);
-        if (owner !== undefined && declaration?.cancelOnLeave === true && !isInsideControl(owner.controlId, sample.clientX, sample.clientY)) {
+        if (owner !== undefined && declaration?.cancelOnLeave === true && !isInsideControl(owner.controlId, sample.clientX, sample.clientY, leaveTolerancePx)) {
           releaseOwner(event.pointerId, "cancel", "pointer-left", false);
           try { elements.get(owner.controlId)?.releasePointerCapture(event.pointerId); } catch { /* Logical ownership is already clear. */ }
           changed = true;
@@ -524,7 +529,7 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
         handled = true;
         const owner = owners.get(touch.identifier);
         const declaration = owner === undefined ? undefined : declarationById.get(owner.controlId);
-        if (owner !== undefined && declaration?.cancelOnLeave === true && !isInsideControl(owner.controlId, touch.clientX, touch.clientY)) {
+        if (owner !== undefined && declaration?.cancelOnLeave === true && !isInsideControl(owner.controlId, touch.clientX, touch.clientY, leaveTolerancePx)) {
           releaseOwner(touch.identifier, "cancel", "touch-left", false);
           changed = true;
           continue;

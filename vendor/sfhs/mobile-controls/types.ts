@@ -80,6 +80,8 @@ export interface CreateMobileControlsOptions {
   readonly onContactEnd?: (event: MobileControlContactEnd) => void;
   /** Cancel the browser's parallel Touch Event defaults when Pointer Events own contacts. */
   readonly preventNativeTouchDefaults?: boolean;
+  /** Extra pixels beyond a control edge allowed before cancel-on-leave releases contact ownership. */
+  readonly leaveTolerancePx?: number;
 }
 
 export interface Stick2dOutput {

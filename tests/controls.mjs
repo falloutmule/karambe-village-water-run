@@ -8,9 +8,11 @@ const runtimeSource = fs.readFileSync('vendor/sfhs/mobile-controls/runtime.ts', 
 const typesSource = fs.readFileSync('vendor/sfhs/mobile-controls/types.ts', 'utf8');
 const adapterSource = fs.readFileSync('src/controls.ts', 'utf8');
 assert.match(typesSource, /preventNativeTouchDefaults\?: boolean/, 'native touch suppression is an opt-in SFHS option');
+assert.match(typesSource, /leaveTolerancePx\?: number/, 'SFHS exposes bounded leave tolerance');
 assert.match(typesSource, /updateLayouts\(layoutPatch: Partial<MobileControlsLayouts>\)/, 'SFHS exposes atomic multi-orientation layout updates');
 assert.match(runtimeSource, /options\.preventNativeTouchDefaults !== true/, 'native touch suppression defaults off');
 assert.match(adapterSource, /preventNativeTouchDefaults: true/, 'Karambe opts into native touch suppression');
+assert.match(adapterSource, /leaveTolerancePx: options\.clicky \? 18 : 0/, 'clicky test enables an 18px retention rim');
 assert.match(adapterSource, /mobile\.updateLayouts\(\{ portrait: patch, landscape: patch \}\)/, 'Karambe updates both layouts atomically');
 assert.doesNotMatch(adapterSource, /for \(const type of \['touchstart'/, 'product adapter has no duplicate Touch Event suppression route');
 
@@ -21,7 +23,7 @@ const errors = [];
 page.on('pageerror', error => errors.push(error.message));
 await page.addInitScript(() => { window.requestAnimationFrame = () => 0; });
 try {
-  await page.goto(pathToFileURL(path.resolve('index.html')).href + '?dev=1');
+  await page.goto(pathToFileURL(path.resolve('index.html')).href + '?dev=1&clicky=1');
   await page.waitForFunction(() => window.CR?.controls);
   // Permit the initial ResizeObserver layout notification before opening contacts.
   await page.waitForTimeout(100);
@@ -39,6 +41,11 @@ try {
       const target = type === 'pointerdown' || type === 'lostpointercapture' ? element : document;
       target.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerType: 'touch', pointerId, button: 0,
         clientX: within ? bounds.left + bounds.width / 2 : 1, clientY: within ? bounds.top + bounds.height / 2 : 1 }));
+    };
+    const emitPoint = (type, id, pointerId, clientX, clientY) => {
+      const element = document.querySelector(`[data-sfhs-control-id="${id}"]`);
+      const target = type === 'pointerdown' ? element : document;
+      target.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerType: 'touch', pointerId, button: 0, clientX, clientY }));
     };
     const emitCoalesced = (id, pointerId, samples) => {
       const element = document.querySelector(`[data-sfhs-control-id="${id}"]`);
@@ -62,6 +69,17 @@ try {
       check(!controls.read().mobile.activePointers.length && !controls.read().queuedActions.length, `${label}: ownership/queue clear`);
       visualMatch();
     };
+    check(CR.clicky === true && document.getElementById('sfhs-game-controls').dataset.surface === 'clicky', 'clicky test is query gated and mounted');
+    const clickyLeft = document.querySelector('[data-sfhs-control-id="left"]');
+    const restingDepth = new DOMMatrixReadOnly(getComputedStyle(clickyLeft, '::before').transform).m42;
+    check(Math.abs(restingDepth - 6) < .1, 'clicky surface has six-pixel raised depth');
+    const clickyBounds = clickyLeft.getBoundingClientRect();
+    emitPoint('pointerdown', 'left', 40, clickyBounds.left + clickyBounds.width / 2, clickyBounds.top + clickyBounds.height / 2);
+    clickyLeft.getAnimations({ subtree: true }).forEach(animation => animation.finish());
+    const pressedTravel = new DOMMatrixReadOnly(getComputedStyle(clickyLeft, '::after').transform).m42;
+    check(Math.abs(pressedTravel - 5) < .1, 'clicky surface travels five pixels on press');
+    emitPoint('pointerup', 'left', 40, clickyBounds.left + clickyBounds.width / 2, clickyBounds.top + clickyBounds.height / 2);
+    clean('clicky visual');
     reset();
     emit('pointerdown', 'left', 41); emit('pointerdown', 'can', 42);
     const heldSequence = controls.read().mobile.sequence;
@@ -99,6 +117,15 @@ try {
     check(game.input.right && game.player.vy < 0, 'movement + JUMP multitouch');
     emit('pointermove', 'right', 10, false); check(!game.input.right, 'movement clears immediately on leave');
     controls.releaseAll('end jump'); clean('jump release');
+    reset();
+    const rightBounds = document.querySelector('[data-sfhs-control-id="right"]').getBoundingClientRect();
+    const rightY = rightBounds.top + rightBounds.height / 2;
+    emitPoint('pointerdown', 'right', 25, rightBounds.left + rightBounds.width / 2, rightY); tick();
+    emitPoint('pointermove', 'right', 25, rightBounds.right + 10, rightY);
+    check(game.input.right && controls.read().mobile.activePointers.length === 1, 'small thumb slip stays owned inside retention rim');
+    emitPoint('pointermove', 'right', 25, rightBounds.right + 24, rightY);
+    check(!game.input.right && controls.read().mobile.activePointers.length === 0, 'larger slide still cancels outside retention rim');
+    clean('retention rim');
     check(vibrationRequests === 0, 'gameplay haptic boundary makes no vibration request');
     for (const id of ['left', 'right', 'can', 'jump']) {
       const element = document.querySelector(`[data-sfhs-control-id="${id}"]`);
@@ -196,7 +223,7 @@ try {
     window.__vibrationRequests = 0;
     Object.defineProperty(navigator, 'vibrate', { configurable: true, value: () => { window.__vibrationRequests++; return true; } });
   });
-  await realtimePage.goto(pathToFileURL(path.resolve('index.html')).href + '?dev=1');
+  await realtimePage.goto(pathToFileURL(path.resolve('index.html')).href + '?dev=1&clicky=1');
   await realtimePage.waitForFunction(() => window.CR?.controls);
   await realtimePage.evaluate(() => { CR.game.startLevel(1); document.getElementById('overlay').classList.remove('open'); });
   const realtimeCdp = await realtimeContext.newCDPSession(realtimePage);

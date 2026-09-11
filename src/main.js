@@ -1,6 +1,6 @@
 import { createGameControls } from './controls.ts';
 import { SoundBank } from './audio.js';
-import { BUILD_ID, DEV_ACCESS, DEV_MENU, LEVELS, SAVE_VERSION, Game } from './game.js';
+import { BUILD_ID, CLICKY_TEST, DEV_ACCESS, DEV_MENU, LEVELS, SAVE_VERSION, Game } from './game.js';
 import { startGameLoop } from './loop.js';
 import { Renderer } from './renderer.js';
 import { createRecordStore } from './storage.js';
@@ -13,7 +13,7 @@ const game = new Game({
 });
 game.attachRenderer(new Renderer($('game'), game));
 const ui = createGameUI(game);
-const controls = createGameControls(game);
+const controls = createGameControls(game, { clicky: CLICKY_TEST });
 game.controls = controls;
 game.cancelControlTouches = reason => controls.releaseAll(reason);
 game.showOverlay = ui.showOverlay;
@@ -21,7 +21,7 @@ game.onScore = text => { $('score').textContent = text; };
 game.onStatus = ui.announce;
 game.setScoreText();
 
-window.CR = { buildId: BUILD_ID, saveVersion: SAVE_VERSION, dev: DEV_MENU };
+window.CR = { buildId: BUILD_ID, saveVersion: SAVE_VERSION, dev: DEV_MENU, clicky: CLICKY_TEST };
 if (DEV_ACCESS) window.CR.game = game;
 if (DEV_ACCESS) window.CR.controls = controls;
 window.CR.runFullSelfCheck = () => {
