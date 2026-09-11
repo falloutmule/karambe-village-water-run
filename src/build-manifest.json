@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "buildId": "karambe-phone-polish1",
+  "buildId": "karambe-hold-suppress1",
   "artifact": "index.html",
   "shell": "src/game.html",
   "game": "src/game.js",

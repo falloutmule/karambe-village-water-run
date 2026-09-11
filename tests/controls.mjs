@@ -80,6 +80,11 @@ try {
         element.dispatchEvent(event);
         check(event.defaultPrevented, `${id} suppresses ${type}`);
       }
+      for (const type of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) {
+        const event = new TouchEvent(type, { bubbles: true, cancelable: true });
+        element.dispatchEvent(event);
+        check(event.defaultPrevented, `${id} suppresses native ${type} defaults`);
+      }
     }
 
     reset();
@@ -126,12 +131,16 @@ try {
   }));
   await page.evaluate(() => {
     window.__holdEvents = [];
+    window.__touchDefaults = [];
     for (const type of ['contextmenu', 'pointercancel', 'lostpointercapture']) document.addEventListener(type, event => window.__holdEvents.push({ type, trusted: event.isTrusted }), true);
+    document.getElementById('sfhs-game-controls').addEventListener('touchstart', event => window.__touchDefaults.push({ trusted: event.isTrusted, prevented: event.defaultPrevented }), { passive: true });
   });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints });
   await page.waitForTimeout(2100);
-  const held = await page.evaluate(() => ({ owners: CR.controls.read().mobile.activePointers.length, events: window.__holdEvents }));
-  assert.deepEqual(held, { owners: 2, events: [] }, 'two-second hold remains owned without browser gesture events');
+  const held = await page.evaluate(() => ({ owners: CR.controls.read().mobile.activePointers.length, events: window.__holdEvents, touchDefaults: window.__touchDefaults }));
+  assert.equal(held.owners, 2, 'two-second hold remains owned');
+  assert.deepEqual(held.events, [], 'two-second hold emits no browser gesture or cancellation events');
+  assert.ok(held.touchDefaults.length > 0 && held.touchDefaults.every(event => event.trusted && event.prevented), 'native touchstart defaults are canceled alongside pointer ownership');
   const active = await page.evaluate(() => { CR.controls.flush(); CR.game.update(1 / 120); return { owners: CR.controls.read().mobile.activePointers.length, right: CR.game.input.right, can: !!CR.game.canPress }; });
   assert.deepEqual(active, { owners: 2, right: true, can: true }, 'real CDP multitouch');
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
