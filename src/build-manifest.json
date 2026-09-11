@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "buildId": "karambe-unlock1",
+  "buildId": "karambe-devmenu2",
   "artifact": "index.html",
   "shell": "src/game.html",
   "entry": "src/main.js",

@@ -1780,12 +1780,13 @@
   };
 
   // src/game.js
-  var BUILD_ID = "karambe-unlock1";
+  var BUILD_ID = "karambe-devmenu2";
   var SAVE_VERSION = 1;
   var WORLD_W = 480;
   var WORLD_H = 860;
   var CANS_PER_LEVEL = 3;
-  var DEV_ACCESS = new URLSearchParams(location.search).get("dev") === "1" && (location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(location.hostname));
+  var DEV_MENU = new URLSearchParams(location.search).get("dev") === "1";
+  var DEV_ACCESS = DEV_MENU && (location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(location.hostname));
   var ROCK_TOP_EXIT_X = 378;
   var FIXED_STEP = 1 / 120;
   var LEVELS = [
@@ -1951,7 +1952,7 @@
       this.sound.unlock();
     }
     canSelectLevels() {
-      return DEV_ACCESS || this.fullRunUnlocked;
+      return DEV_MENU || this.fullRunUnlocked;
     }
     startLevel(levelNumber) {
       if (!this.canSelectLevels()) return false;
@@ -3729,9 +3730,10 @@
         return false;
       }
       levelSelectBox.classList.remove("hidden");
+      levelSelectBox.setAttribute("aria-label", DEV_MENU ? "Development level menu" : "Level select");
       const heading = document.createElement("div");
       heading.className = "level-select-title";
-      heading.textContent = "CHOOSE A LEVEL";
+      heading.textContent = DEV_MENU ? "DEV MENU — LEVEL ACCESS" : "CHOOSE A LEVEL";
       const grid = document.createElement("div");
       grid.className = "level-select-grid";
       levelSelectBox.replaceChildren(heading, grid);
@@ -3779,9 +3781,9 @@
       downloadBtn.classList.add("hidden");
       installBtn.classList.add("hidden");
       if (mode === "start") {
-        title.textContent = "Karambe Village Water Run";
+        title.textContent = DEV_MENU ? "DEV MENU — Karambe Village Water Run" : "Karambe Village Water Run";
         const canSelect = renderLevelSelect();
-        subtitle.textContent = canSelect ? "Choose a level or race the complete three-level run." : "Complete the three-level run to unlock Level Select.";
+        subtitle.textContent = DEV_MENU ? "Development access: choose any level. Progress and best times are not saved." : canSelect ? "Choose a level or race the complete three-level run." : "Complete the three-level run to unlock Level Select.";
         primary.textContent = "START FULL RUN";
         primaryAction = () => {
           closeOverlay();
@@ -3932,7 +3934,7 @@
   var $2 = (id) => document.getElementById(id);
   var game = new Game({
     sound: new SoundBank(),
-    records: createRecordStore(!DEV_ACCESS, LEVELS.length)
+    records: createRecordStore(!DEV_MENU, LEVELS.length)
   });
   game.attachRenderer(new Renderer($2("game"), game));
   var ui = createGameUI(game);
@@ -3945,7 +3947,7 @@
   };
   game.onStatus = ui.announce;
   game.setScoreText();
-  window.CR = { buildId: BUILD_ID, saveVersion: SAVE_VERSION, dev: DEV_ACCESS };
+  window.CR = { buildId: BUILD_ID, saveVersion: SAVE_VERSION, dev: DEV_MENU };
   if (DEV_ACCESS) window.CR.game = game;
   if (DEV_ACCESS) window.CR.controls = controls;
   window.CR.runFullSelfCheck = () => {

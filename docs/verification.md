@@ -1,6 +1,6 @@
 # Engineering verification
 
-Current candidate: `karambe-unlock1`. Canonical input is `src/` plus its
+Current candidate: `karambe-devmenu2`. Canonical input is `src/` plus its
 build manifest; root `index.html` is generated and checked byte-for-byte. This document
 records local engineering evidence, not a physical Android acceptance verdict.
 
@@ -30,7 +30,7 @@ grace; original music/SFX and persisted mute; clearer instructions and larger HU
   long hold, cancellation and an unfrozen real-time loop. It covers ownership,
   event batching, every control with sound on/off, canceled/outside CAN,
   assistive timers, visual clearing, blur, visibility, viewport and transitions.
-- `npm run test:release`: 52 checks for normal release boot, dialog focus/inert behavior, live status, locked first run, permanent sequential-clear unlock, persisted
+- `npm run test:release`: 57 checks for normal release boot, dialog focus/inert behavior, live status, locked first run, permanent sequential-clear unlock, isolated Dev Menu, persisted
   mute, audio gesture startup, all-level music, portrait control bounds, exact-byte
   download and standalone operation. A clearly identified fixture exposes game
   state for verification; normal release is tested separately.
@@ -65,7 +65,7 @@ diagnostic rather than a physical-phone performance claim.
 Every push now has separate test, deploy and live-verification jobs. The verifier
 retries until the [Pages game](https://falloutmule.github.io/karambe-village-water-run/)
 exactly matches committed `index.html`, then checks the read-only self-check,
-fresh-install Level Select lock, public dev-flag rejection, trusted Touch cancellation,
+fresh-install Level Select lock, isolated public Dev Menu, trusted Touch cancellation,
 native CDP multitouch and pause UI. It records served bytes, SHA-256, retry
 observations and runtime evidence in the workflow's `live-pages-proof` artifact.
 

@@ -90,9 +90,10 @@ try {
   await page.locator('#menuBtn').click();
   assert.equal((await page.locator('#primaryBtn').textContent())?.trim(), 'RESUME');
   await page.goto(new URL('?dev=1', url).href, { waitUntil: 'networkidle' });
-  assert.ok(!await page.evaluate(() => CR.dev || CR.game), 'query flag cannot expose production debug state');
-  assert.equal(await page.locator('.level-pick').count(), 0);
-  assert.equal(await page.locator('#levelSelectBox').isVisible(), false);
+  assert.ok(await page.evaluate(() => CR.dev && !CR.game && !CR.controls), 'public Dev Menu does not expose mutable debug state');
+  assert.equal(await page.locator('.level-pick').count(), 3);
+  assert.equal(await page.locator('#levelSelectBox').isVisible(), true);
+  assert.equal((await page.locator('.level-select-title').textContent())?.trim(), 'DEV MENU — LEVEL ACCESS');
   assert.deepEqual(errors, []);
   assert.deepEqual(unexpected, []);
 
@@ -107,7 +108,7 @@ try {
     selfcheck,
     liveMultitouchAndCancel: true,
     trustedTouchDefaultsCanceled: true,
-    publicDevFlagDisabled: true,
+    publicDevMenuIsolated: true,
     errors,
     unexpectedRequests: unexpected,
     physicalPhone: 'not tested'

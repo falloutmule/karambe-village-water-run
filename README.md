@@ -34,9 +34,10 @@ build manifest; root `index.html` is generated. There is no server or CDN at run
 The small esbuild packer embeds the actual pinned SFHS runtime and preserved
 license; it does not claim SFHS packer certification.
 
-On localhost or a downloaded file, append `?dev=1` for the `CR.game` and
-`CR.controls` test hooks and development-only Level Select access. Development
-sessions do not write progression or best times. That flag has no effect on public GitHub Pages. Normal builds
+Append `?dev=1` for the clearly labeled Dev Menu with all three levels. Dev Menu
+sessions do not write progression or best times. On localhost or a downloaded
+file, the same flag also exposes the `CR.game` and `CR.controls` test hooks. The
+public Dev Menu does not expose those mutable hooks. Normal release sessions
 expose only build metadata and a read-only `CR.runFullSelfCheck()`.
 
 See [verification](docs/verification.md), [SFHS provenance](docs/sfhs.md),

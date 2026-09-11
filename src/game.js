@@ -7,7 +7,8 @@ export const SAVE_VERSION = 1;
 export const WORLD_W = 480;
 export const WORLD_H = 860;
 export const CANS_PER_LEVEL = 3;
-export const DEV_ACCESS = new URLSearchParams(location.search).get('dev') === '1' && (location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname));
+export const DEV_MENU = new URLSearchParams(location.search).get('dev') === '1';
+export const DEV_ACCESS = DEV_MENU && (location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname));
 export const ROCK_TOP_EXIT_X = 378;
 export const FIXED_STEP = 1 / 120;
 export const LEVELS = [
@@ -182,7 +183,7 @@ export class Game {
     }
 
     canSelectLevels() {
-      return DEV_ACCESS || this.fullRunUnlocked;
+      return DEV_MENU || this.fullRunUnlocked;
     }
 
     startLevel(levelNumber) {

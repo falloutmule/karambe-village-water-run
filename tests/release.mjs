@@ -18,7 +18,7 @@ const server = http.createServer((req, res) => {
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--host-resolver-rules=MAP karambe.test 127.0.0.1'] });
 const evidence = { fixture: 'Instrumented release exposes CR.game only; unmodified release separately verified', checks: [], music: [], viewports: [], unexpectedRequests: [], pageErrors: [] };
 const contexts = [];
 const check = (value, label) => { assert.ok(value, label); evidence.checks.push(label); };
@@ -106,9 +106,18 @@ try {
   await single.goto(base + '/instrumented.html');
   check(await single.evaluate(() => CR.game.startLevel(3) === false && CR.game.state === 'ready'), 'fresh release cannot bypass progression through the game API');
 
+  const publicDev = await session({ manual: false });
+  await publicDev.goto(`http://karambe.test:${server.address().port}/?dev=1`);
+  check(await publicDev.evaluate(() => CR.dev && !CR.game && !CR.controls), 'public Dev Menu exposes no mutable debug hooks');
+  check(await publicDev.locator('.level-pick').count() === 3 && (await publicDev.locator('.level-select-title').textContent()) === 'DEV MENU — LEVEL ACCESS', 'public test URL exposes the labeled three-level Dev Menu');
+  await publicDev.locator('.level-pick').nth(2).click();
+  check(await publicDev.evaluate(() => ['karambe-water-run-full-clear', 'karambe-water-run-best-times', 'karambe-water-run-best-total'].every(key => localStorage.getItem(key) === null)), 'public Dev Menu does not write release progression or records');
+
   const dev = await session({ manual: false });
   await dev.goto(base + '/?dev=1');
   check(await dev.locator('.level-pick').count() === 3 && await dev.locator('#levelSelectBox').isVisible(), 'trusted local development mode exposes Level Select');
+  check((await dev.locator('#overlayTitle').textContent())?.startsWith('DEV MENU') && (await dev.locator('.level-select-title').textContent()) === 'DEV MENU — LEVEL ACCESS', 'development level access is clearly labeled as the Dev Menu');
+  check((await dev.locator('#overlaySubtitle').textContent())?.includes('not saved'), 'Dev Menu explains its isolated persistence');
   await dev.locator('#primaryBtn').click();
   for (let level = 1; level <= 3; level++) {
     await dev.evaluate(n => CR.game.startLevel(n), level);

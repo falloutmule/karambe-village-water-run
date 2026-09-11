@@ -1,6 +1,6 @@
 import { createGameControls } from './controls.ts';
 import { SoundBank } from './audio.js';
-import { BUILD_ID, DEV_ACCESS, LEVELS, SAVE_VERSION, Game } from './game.js';
+import { BUILD_ID, DEV_ACCESS, DEV_MENU, LEVELS, SAVE_VERSION, Game } from './game.js';
 import { startGameLoop } from './loop.js';
 import { Renderer } from './renderer.js';
 import { createRecordStore } from './storage.js';
@@ -9,7 +9,7 @@ import { createGameUI } from './ui.js';
 const $ = (id) => document.getElementById(id);
 const game = new Game({
   sound: new SoundBank(),
-  records: createRecordStore(!DEV_ACCESS, LEVELS.length)
+  records: createRecordStore(!DEV_MENU, LEVELS.length)
 });
 game.attachRenderer(new Renderer($('game'), game));
 const ui = createGameUI(game);
@@ -21,7 +21,7 @@ game.onScore = text => { $('score').textContent = text; };
 game.onStatus = ui.announce;
 game.setScoreText();
 
-window.CR = { buildId: BUILD_ID, saveVersion: SAVE_VERSION, dev: DEV_ACCESS };
+window.CR = { buildId: BUILD_ID, saveVersion: SAVE_VERSION, dev: DEV_MENU };
 if (DEV_ACCESS) window.CR.game = game;
 if (DEV_ACCESS) window.CR.controls = controls;
 window.CR.runFullSelfCheck = () => {

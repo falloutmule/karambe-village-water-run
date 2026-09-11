@@ -1,4 +1,4 @@
-import { LEVELS, formatTime } from './game.js';
+import { DEV_MENU, LEVELS, formatTime } from './game.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -30,9 +30,10 @@ export function createGameUI(game) {
       return false;
     }
     levelSelectBox.classList.remove('hidden');
+    levelSelectBox.setAttribute('aria-label', DEV_MENU ? 'Development level menu' : 'Level select');
     const heading = document.createElement('div');
     heading.className = 'level-select-title';
-    heading.textContent = 'CHOOSE A LEVEL';
+    heading.textContent = DEV_MENU ? 'DEV MENU — LEVEL ACCESS' : 'CHOOSE A LEVEL';
     const grid = document.createElement('div');
     grid.className = 'level-select-grid';
     levelSelectBox.replaceChildren(heading, grid);
@@ -82,9 +83,9 @@ export function createGameUI(game) {
     downloadBtn.classList.add('hidden');
     installBtn.classList.add('hidden');
     if (mode === 'start') {
-      title.textContent = 'Karambe Village Water Run';
+      title.textContent = DEV_MENU ? 'DEV MENU — Karambe Village Water Run' : 'Karambe Village Water Run';
       const canSelect = renderLevelSelect();
-      subtitle.textContent = canSelect ? 'Choose a level or race the complete three-level run.' : 'Complete the three-level run to unlock Level Select.';
+      subtitle.textContent = DEV_MENU ? 'Development access: choose any level. Progress and best times are not saved.' : canSelect ? 'Choose a level or race the complete three-level run.' : 'Complete the three-level run to unlock Level Select.';
       primary.textContent = 'START FULL RUN';
       primaryAction = () => { closeOverlay(); game.start(); };
       secondary.classList.remove('hidden');
