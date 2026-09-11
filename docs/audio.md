@@ -2,7 +2,15 @@
 
 `src/audio.js` synthesizes every sound locally with Web Audio. The melody, harmony, rhythmic pattern, and effects are newly authored for this game. No recordings, sampled music, external assets, or traditional/culturally authentic music claims are involved.
 
-A four-root harmonic cycle supports a sixteen-note motif. L1 uses a spacious 108 BPM arrangement; L2 adds alternating melody notes at 116 BPM; L3 adds light offbeat percussion at 124 BPM. Modest master gain and quiet accompaniment prioritize gameplay cues.
+A four-root harmonic cycle supports an original call-and-response theme. The score
+uses syncopated percussion, interlocking chip-pluck figures and melodic triangle
+bass: L1 is sparse at 110 BPM, L2 adds the response at 118 BPM, and L3 uses the
+full rhythmic layer at 126 BPM. This is a broad stylistic influence, not a claim of
+traditional or culturally authentic music.
+
+Music and effects run through separate internal buses. Major block, hit, retry and
+clear cues briefly duck the music. A reusable deterministic noise buffer avoids
+allocating a new AudioBuffer for every step or rock sound.
 
 ## Integration
 

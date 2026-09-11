@@ -17,9 +17,18 @@ export interface MobileControlDeclaration {
   readonly label: string;
   readonly axis?: "x" | "y";
   readonly editable?: boolean;
+  /** Release this contact as canceled as soon as it leaves the control bounds. */
+  readonly cancelOnLeave?: boolean;
   readonly minWidth?: number;
   readonly minHeight?: number;
   readonly layout: Readonly<Record<MobileControlsOrientation, NormalizedRect>>;
+}
+
+export interface MobileControlContactEnd {
+  readonly identifier: number;
+  readonly controlId: string;
+  readonly kind: "release" | "cancel";
+  readonly reason: string;
 }
 
 export interface MobileControlsSettings {
@@ -68,6 +77,7 @@ export interface CreateMobileControlsOptions {
   readonly controls: readonly MobileControlDeclaration[];
   readonly settings?: Partial<MobileControlsSettings>;
   readonly persistence?: MobileControlsPersistenceOptions;
+  readonly onContactEnd?: (event: MobileControlContactEnd) => void;
 }
 
 export interface Stick2dOutput {

@@ -7,15 +7,15 @@ It is the actual production TypeScript runtime, not a reimplementation. Its MIT
 license is retained in `vendor/sfhs/LICENSE`. The shared checkout had unrelated
 dirty work and an older HEAD; vendor files were extracted from the fetched commit.
 
-`runtime.ts` has one product-local presentation patch after physical Android
-testing: discrete controls are emitted as focusable `div role="button"` surfaces
-instead of native `button` elements. The target phone applied a long-hold haptic
-through its native button path despite CSS and canceled defaults. Pointer ownership,
-capture, cancellation, snapshots, layouts and outputs are unchanged. The shared
-SFHS repository was not modified, and this local divergence is deliberately named
-in `src/build-manifest.json` rather than presented as an exact unmodified vendor copy.
+`runtime.ts` has a bounded product-local extension. Visible phone controls are
+neutral touch surfaces, while separate offscreen buttons retain keyboard and
+assistive labels outside the touch hit targets. The extension reports authoritative
+contact endings and supports cancel-on-leave without dispatching synthetic browser
+events. The shared SFHS repository was not modified, and the divergence is named in
+`src/build-manifest.json`.
 
-`src/controls.ts` maps the four established controls to SFHS `hold` primitives.
+`src/controls.ts` maps movement and CAN to SFHS `hold` primitives and JUMP to a
+`pulse` primitive.
 SFHS owns contact identity, simultaneous contacts, document release, cancel, lost
 capture, lifecycle reset, normalized layouts, and active-contact feedback.
 Gameplay actions are drained at the simulation update boundary. CAN taps require

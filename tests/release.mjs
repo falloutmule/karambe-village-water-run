@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 
 const html = fs.readFileSync('index.html', 'utf8');
-const hook = 'if (BUILD_LEVEL_SELECT) window.CR.game = game;';
+const hook = 'if (DEV_ACCESS) window.CR.game = game;';
 assert.equal(html.split(hook).length, 2, 'one precise instrumentation location');
 // Release fixture exposes state ONLY. All normal release flags/persistence logic remain intact.
 const instrumented = html.replace(hook, 'window.CR.game = game;');
@@ -45,7 +45,8 @@ try {
   const normal = await session();
   await normal.goto(base);
   check(await normal.evaluate(() => !CR.dev && !CR.game && !CR.controls), 'unmodified normal release has no debug access');
-  check(await normal.locator('#levelSelectBox').evaluate(el => el.classList.contains('hidden')), 'first-ever release level select locked');
+  check(await normal.locator('.level-pick').count() === 3 && await normal.locator('#levelSelectBox').isVisible(), 'first-ever release exposes all three levels');
+  check(await normal.locator('#downloadBtn').isVisible() && await normal.locator('#installBtn').isVisible(), 'start menu exposes offline download and home-screen help');
   check(await normal.evaluate(() => window.__audioCreated === 0), 'no AudioContext before gesture');
   await normal.locator('#soundBtn').click();
   check(await normal.locator('#soundBtn').textContent() === 'SOUND: OFF', 'sound toggle disables');
@@ -56,7 +57,7 @@ try {
   check(await normal.locator('#overlay').evaluate(el => !el.classList.contains('open')), 'normal menu starts playable release');
   await normal.evaluate(() => localStorage.setItem('karambe-water-run-best-times', '[10,20,30]'));
   await normal.reload();
-  check(await normal.locator('#levelSelectBox').evaluate(el => el.classList.contains('hidden')), 'best-time entries alone do not unlock selection');
+  check(await normal.locator('.level-pick').count() === 3 && await normal.locator('#levelSelectBox').isVisible(), 'best-time entries render without gating selection');
 
   const sequential = await session();
   await sequential.goto(base + '/instrumented.html');
@@ -67,7 +68,7 @@ try {
     await threeCans(sequential);
     check(await sequential.evaluate(() => CR.game.canSplits.length === 3 && CR.game.levelCans === 3), `Level ${level} records three deliveries/splits`);
     if (level < 3) {
-      check(await sequential.evaluate(() => localStorage.getItem('karambe-water-run-full-clear') === null), `Level ${level} alone does not unlock`);
+      check(await sequential.evaluate(() => localStorage.getItem('karambe-water-run-full-clear') === null), `Level ${level} alone does not mark a full clear`);
       await sequential.locator('#primaryBtn').click();
     }
   }
@@ -78,8 +79,7 @@ try {
 
   const single = await session();
   await single.goto(base + '/instrumented.html');
-  // Inject only test state to reach an otherwise locked individual-level completion.
-  await single.evaluate(() => { CR.game.start(); CR.game.runMode = 'single'; CR.game.level = 3; CR.game.resetLevel(); CR.game.state = 'playing'; });
+  await single.evaluate(() => CR.game.startLevel(3));
   await threeCans(single);
   check(await single.evaluate(() => CR.game.state === 'singleComplete' && !CR.game.fullRunCompleted && localStorage.getItem('karambe-water-run-full-clear') === null), 'single-level completion cannot unlock first full run');
 
@@ -120,6 +120,13 @@ try {
   const file = await session();
   await file.goto(pathToFileURL(path.resolve('index.html')).href);
   check(await file.evaluate(() => !!CR && !CR.dev && !CR.game && document.querySelectorAll('[data-sfhs-control-id]').length === 4), 'unmodified standalone file boots without development access');
+  check(await file.locator('#offlineStatus').isVisible() && !await file.locator('#downloadBtn').isVisible(), 'standalone file identifies itself as the offline copy');
+
+  const downloadPage = await session();
+  await downloadPage.goto(base);
+  const [download] = await Promise.all([downloadPage.waitForEvent('download'), downloadPage.locator('#downloadBtn').click()]);
+  const downloadedPath = await download.path();
+  check(download.suggestedFilename() === 'Karambe-Village-Water-Run.html' && downloadedPath && fs.readFileSync(downloadedPath).equals(fs.readFileSync('index.html')), 'download action returns exact built artifact bytes');
   assert.deepEqual(evidence.unexpectedRequests, [], 'no runtime network requests beyond navigation document');
   assert.deepEqual(evidence.pageErrors, [], 'no page errors');
   evidence.pass = true;

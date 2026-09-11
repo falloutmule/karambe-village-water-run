@@ -290,7 +290,7 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
     if (dot !== null && dot !== undefined) dot.style.transform = `translate(calc(-50% + ${x * 120}%),calc(-50% + ${-y * 120}%))`;
   };
 
-  const releaseOwner = (identifier: number): void => {
+  const releaseOwner = (identifier: number, kind: "release" | "cancel" = "cancel", reason = "consumer"): void => {
     const owner = owners.get(identifier);
     if (owner === undefined) return;
     owners.delete(identifier);
@@ -308,7 +308,13 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
       case "toggle": break;
     }
     setActiveVisual(owner.controlId, false);
+    options.onContactEnd?.(Object.freeze({ identifier, controlId: owner.controlId, kind, reason }));
     notify();
+  };
+
+  const isInsideControl = (controlId: string, clientX: number, clientY: number): boolean => {
+    const bounds = elements.get(controlId)?.getBoundingClientRect();
+    return bounds !== undefined && clientX >= bounds.left && clientX <= bounds.right && clientY >= bounds.top && clientY <= bounds.bottom;
   };
 
   const beginOwner = (
@@ -444,23 +450,39 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
         try { element.setPointerCapture(event.pointerId); } catch { /* Document tracking remains authoritative. */ }
       }) as EventListener, { passive: false });
       add(element, "lostpointercapture", ((rawEvent: Event) => {
-        releaseOwner((rawEvent as PointerEvent).pointerId);
+        releaseOwner((rawEvent as PointerEvent).pointerId, "cancel", "capture-lost");
       }) as EventListener, { passive: false });
     }
     add(document, "pointermove", ((rawEvent: Event) => {
       const event = rawEvent as PointerEvent;
       if (!owners.has(event.pointerId)) return;
       event.preventDefault();
-      for (const sample of pointerSamples(event)) moveOwner(event.pointerId, sample.clientX, sample.clientY);
+      for (const sample of pointerSamples(event)) {
+        const owner = owners.get(event.pointerId);
+        const declaration = owner === undefined ? undefined : declarationById.get(owner.controlId);
+        if (owner !== undefined && declaration?.cancelOnLeave === true && !isInsideControl(owner.controlId, sample.clientX, sample.clientY)) {
+          try { elements.get(owner.controlId)?.releasePointerCapture(event.pointerId); } catch { /* Ownership still clears below. */ }
+          releaseOwner(event.pointerId, "cancel", "pointer-left");
+          break;
+        }
+        moveOwner(event.pointerId, sample.clientX, sample.clientY);
+      }
     }) as EventListener, { passive: false });
     const finish = ((rawEvent: Event) => {
       const event = rawEvent as PointerEvent;
-      if (!owners.has(event.pointerId)) return;
+      const owner = owners.get(event.pointerId);
+      if (owner === undefined) return;
       event.preventDefault();
-      releaseOwner(event.pointerId);
+      const inside = isInsideControl(owner.controlId, event.clientX, event.clientY);
+      releaseOwner(event.pointerId, inside ? "release" : "cancel", inside ? "pointer-up" : "release-outside");
     }) as EventListener;
     add(document, "pointerup", finish, { passive: false });
-    add(document, "pointercancel", finish, { passive: false });
+    add(document, "pointercancel", ((rawEvent: Event) => {
+      const event = rawEvent as PointerEvent;
+      if (!owners.has(event.pointerId)) return;
+      event.preventDefault();
+      releaseOwner(event.pointerId, "cancel", "pointer-cancel");
+    }) as EventListener, { passive: false });
   };
 
   const installTouchRoute = (): void => {
@@ -482,6 +504,12 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
       for (const touch of Array.from(event.touches.length > 0 ? event.touches : event.changedTouches)) {
         if (!owners.has(touch.identifier)) continue;
         handled = true;
+        const owner = owners.get(touch.identifier);
+        const declaration = owner === undefined ? undefined : declarationById.get(owner.controlId);
+        if (owner !== undefined && declaration?.cancelOnLeave === true && !isInsideControl(owner.controlId, touch.clientX, touch.clientY)) {
+          releaseOwner(touch.identifier, "cancel", "touch-left");
+          continue;
+        }
         moveOwner(touch.identifier, touch.clientX, touch.clientY);
       }
       if (handled) event.preventDefault();
@@ -492,26 +520,33 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
       for (const touch of Array.from(event.changedTouches)) {
         if (!owners.has(touch.identifier)) continue;
         handled = true;
-        releaseOwner(touch.identifier);
+        const owner = owners.get(touch.identifier)!;
+        const inside = isInsideControl(owner.controlId, touch.clientX, touch.clientY);
+        releaseOwner(touch.identifier, inside ? "release" : "cancel", inside ? "touch-end" : "release-outside");
       }
       if (handled) event.preventDefault();
     }) as EventListener;
     add(document, "touchend", finish, { passive: false });
-    add(document, "touchcancel", finish, { passive: false });
+    add(document, "touchcancel", ((rawEvent: Event) => {
+      const event = rawEvent as TouchEvent;
+      let handled = false;
+      for (const touch of Array.from(event.changedTouches)) {
+        if (!owners.has(touch.identifier)) continue;
+        handled = true;
+        releaseOwner(touch.identifier, "cancel", "touch-cancel");
+      }
+      if (handled) event.preventDefault();
+    }) as EventListener, { passive: false });
   };
 
   const makeControlElement = (declaration: MobileControlDeclaration): HTMLElement => {
-    // Product-local phone patch: Android applies unavoidable long-hold haptics
-    // to native <button> elements on the target device. A role-backed div keeps
-    // SFHS ownership/event semantics while avoiding that browser control path.
+    // Product-local phone surface: semantics live in separate non-touch proxy buttons.
     const element = document.createElement("div");
     element.className = "sfhs-mobile-control";
     element.dataset.sfhsControlId = declaration.id;
     element.dataset.sfhsControlType = declaration.type;
     element.dataset.controlActive = "false";
-    element.setAttribute("aria-label", declaration.label);
-    element.setAttribute("role", "button");
-    element.tabIndex = 0;
+    element.setAttribute("aria-hidden", "true");
     const label = document.createElement("span");
     label.className = "sfhs-mobile-control-label";
     label.textContent = declaration.label;
@@ -534,7 +569,13 @@ export function createMobileControlsRuntime(options: CreateMobileControlsOptions
   }
 
   function releaseAll(reason = "consumer"): void {
-    void reason;
+    for (const [identifier, owner] of [...owners]) {
+      try {
+        const element = elements.get(owner.controlId);
+        if (element?.hasPointerCapture(identifier)) element.releasePointerCapture(identifier);
+      } catch { /* Logical ownership still clears below. */ }
+      releaseOwner(identifier, "cancel", reason);
+    }
     owners.clear();
     ownerByControl.clear();
     for (const [controlId, output] of Object.entries(outputs)) {

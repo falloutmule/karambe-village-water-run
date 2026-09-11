@@ -1,8 +1,7 @@
 # Engineering verification
 
-Current candidate: `karambe-touch-surface1`; phone-test variant:
-`karambe-touch-surface1-test`. Canonical input is `src/` plus its build
-manifest; root `index.html` is generated and checked byte-for-byte. This document
+Current candidate: `karambe-phone-polish1`. Canonical input is `src/` plus its
+build manifest; root `index.html` is generated and checked byte-for-byte. This document
 records local engineering evidence, not a physical Android acceptance verdict.
 
 ## Starting point and scope
@@ -30,10 +29,10 @@ grace; original music/SFX and persisted mute; clearer instructions and larger HU
 - `npm run test:controls`: 111 assertions plus native Chromium CDP multitouch
   and cancellation. Ownership, canceled/outside CAN, no phantom pickup, held
   movement, visual clearing, blur, visibility, viewport and transitions.
-- `npm run test:release`: 30 checks. Actual release boot, locked/unlocked menus,
-  persisted mute, audio gesture startup, all-level music, portrait control bounds,
-  and standalone operation. Progression injection uses a clearly identified
-  fixture changing only test-state exposure; normal release is tested separately.
+- `npm run test:release`: normal release boot, immediate Level Select, persisted
+  mute, audio gesture startup, all-level music, portrait control bounds, exact-byte
+  download and standalone operation. A clearly identified fixture exposes game
+  state for verification; normal release is tested separately.
 - `npm run test:routes`: L2 and L3 each complete three cans twice, hazards active,
   zero retries, equal repeated elapsed times. Uses simulation inputs/actions;
   no teleports, invulnerability, hazard disabling, or speed changes. L2 blocks
@@ -47,6 +46,12 @@ grace; original music/SFX and persisted mute; clearer instructions and larger HU
 Raw run evidence is ignored under `test-results/`. CI recreates proofs and deploys
 only `index.html`. SFHS mobile-control runtime provenance is verified; this product
 uses its own small esbuild packer, not an asserted SFHS certification pipeline.
+
+The phone-polish render benchmark compares 300 direct L3 renders with the preserved
+`7f411e8` artifact. Static scenery caching reduced `beginPath` calls from 40,200 to
+9,300, strokes from 22,800 to 3,900, and fill rectangles from 33,300 to 6,600.
+Those operation counts are stable evidence; the accompanying headless timing is
+diagnostic rather than a physical-phone performance claim.
 
 ## Published artifact check
 
@@ -63,23 +68,19 @@ commit identity is available in Actions.
 
 ## Phone-first testing access
 
-`playtest.html` is generated from the same canonical gameplay with an explicit
-phone-test build flag. Its first screen exposes all three level buttons on a
-phone; no download, query string, or desktop server is needed. `index.html`
-retains sequential first-run progression. Phone tests cannot write normal best
-times or unlocks. `tests/phone-access.mjs` checks touch selection and immediate
-visibility at 320×568, 390×844 and 412×915, plus storage isolation. Set
-`KARAMBE_LIVE=1` to also compare both deployed artifacts byte-for-byte.
+The public and downloadable product is one `index.html`. Its first screen exposes
+all three levels and the complete-run option. `tests/phone-access.mjs` checks touch
+selection and immediate visibility at 320×568, 390×844 and 412×915, plus standalone
+file behavior. Set `KARAMBE_LIVE=1` to compare deployed bytes with the local artifact.
 
 ## Haptic behavior
 
-The game does not request device vibration. Gameplay controls use accessible
-`div role="button"` touch surfaces to avoid Android's native button long-hold
-haptic path. Hold-callout, selection and drag defaults are also suppressed. The control
-suite verifies those event boundaries and stubs `navigator.vibrate` to prove a
-gameplay haptic event makes zero calls. Browser automation cannot prove whether a
-specific phone's operating system adds hardware feedback outside the web page;
-that last distinction requires physical Android Chrome testing.
+The game does not request device vibration. Gameplay controls use neutral `div`
+touch surfaces with semantic keyboard proxies outside the touch targets. SFHS owns
+contact release, cancel-on-leave and capture cleanup directly; no synthetic browser
+cancellation events remain. Hold-callout, selection and drag defaults are suppressed.
+Browser automation cannot prove whether a specific phone adds hardware feedback;
+that distinction requires physical Android Chrome testing.
 
 ## Limits and acceptance
 

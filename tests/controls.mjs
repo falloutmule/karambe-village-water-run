@@ -21,7 +21,7 @@ try {
     const check = (value, label) => { if (!value) throw new Error(label); findings.push(label); };
     let vibrationRequests = 0;
     Object.defineProperty(navigator, 'vibrate', { configurable: true, value: () => { vibrationRequests++; return true; } });
-    const tick = (n = 1) => { for (let i = 0; i < n; i++) game.update(1 / 120); };
+    const tick = (n = 1) => { controls.flush(); for (let i = 0; i < n; i++) game.update(1 / 120); };
     const reset = () => { controls.releaseAll('test'); game.startLevel(1); document.getElementById('overlay').classList.remove('open'); };
     const emit = (type, id, pointerId, within = true) => {
       const element = document.querySelector(`[data-sfhs-control-id="${id}"]`);
@@ -74,7 +74,7 @@ try {
     check(vibrationRequests === 0, 'gameplay haptic boundary makes no vibration request');
     for (const id of ['left', 'right', 'can', 'jump']) {
       const element = document.querySelector(`[data-sfhs-control-id="${id}"]`);
-      check(element.tagName === 'DIV' && element.getAttribute('role') === 'button', `${id} avoids native button haptics`);
+      check(element.tagName === 'DIV' && !element.hasAttribute('role') && element.getAttribute('aria-hidden') === 'true', `${id} uses a neutral touch surface`);
       for (const type of ['contextmenu', 'selectstart', 'dragstart']) {
         const event = new Event(type, { bubbles: true, cancelable: true });
         element.dispatchEvent(event);
@@ -124,14 +124,21 @@ try {
     const r = document.querySelector(`[data-sfhs-control-id="${id}"]`).getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2, id: i + 31, radiusX: 5, radiusY: 5, force: 1 };
   }));
+  await page.evaluate(() => {
+    window.__holdEvents = [];
+    for (const type of ['contextmenu', 'pointercancel', 'lostpointercapture']) document.addEventListener(type, event => window.__holdEvents.push({ type, trusted: event.isTrusted }), true);
+  });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints });
-  const active = await page.evaluate(() => { CR.game.update(1 / 120); return { owners: CR.controls.read().mobile.activePointers.length, right: CR.game.input.right, can: !!CR.game.canPress }; });
+  await page.waitForTimeout(2100);
+  const held = await page.evaluate(() => ({ owners: CR.controls.read().mobile.activePointers.length, events: window.__holdEvents }));
+  assert.deepEqual(held, { owners: 2, events: [] }, 'two-second hold remains owned without browser gesture events');
+  const active = await page.evaluate(() => { CR.controls.flush(); CR.game.update(1 / 120); return { owners: CR.controls.read().mobile.activePointers.length, right: CR.game.input.right, can: !!CR.game.canPress }; });
   assert.deepEqual(active, { owners: 2, right: true, can: true }, 'real CDP multitouch');
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
   const released = await page.evaluate(() => ({ owners: CR.controls.read().mobile.activePointers.length, right: CR.game.input.right, can: !!CR.game.canPress, held: CR.game.can.held }));
   assert.deepEqual(released, { owners: 0, right: false, can: false, held: true }, 'real CDP touchCancel does not place can');
   assert.deepEqual(errors, [], 'page errors');
   fs.mkdirSync('test-results/controls', { recursive: true });
-  fs.writeFileSync('test-results/controls/proof.json', JSON.stringify({ pass: true, ...proof, nativeMultitouch: active, nativeCancel: released, errors }, null, 2));
-  console.log(`PASS controls: ${proof.checks} assertions plus native CDP multitouch/cancel`);
+  fs.writeFileSync('test-results/controls/proof.json', JSON.stringify({ pass: true, ...proof, nativeLongHold: held, nativeMultitouch: active, nativeCancel: released, errors }, null, 2));
+  console.log(`PASS controls: ${proof.checks} assertions plus native CDP long-hold/multitouch/cancel`);
 } finally { await browser.close(); }

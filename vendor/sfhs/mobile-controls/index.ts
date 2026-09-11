@@ -6,6 +6,7 @@ export const createMobileControls = createMobileControlsRuntime;
 export { defaultMobileControlsSettings, serializeProfile } from "./profile.ts";
 export type {
   CreateMobileControlsOptions,
+  MobileControlContactEnd,
   HoldOutput,
   MobileControlDeclaration,
   MobileControlOutput,

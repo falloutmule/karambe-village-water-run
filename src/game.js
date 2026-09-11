@@ -4,14 +4,14 @@
   // SECTION constitution: INPUT -> ACTIONS -> SIMULATION -> RENDER.
   // Rendering never mutates gameplay or save state. Canonical source; generated index.html.
   // SAVE_VERSION changes require migration. No eval, dynamic Function, inline handlers or external runtime dependencies.
-  const PHONE_TEST_BUILD = __PHONE_TEST_BUILD__;
   const BUILD_ID = __BUILD_ID__;
   const SAVE_VERSION = 1;
 
   const WORLD_W = 480;
   const WORLD_H = 860;
   const CANS_PER_LEVEL = 3;
-  const BUILD_LEVEL_SELECT = PHONE_TEST_BUILD || (new URLSearchParams(location.search).get('dev') === '1' && (location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname)));
+  const DEV_ACCESS = new URLSearchParams(location.search).get('dev') === '1' && (location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname));
+  const PERSIST_RECORDS = !DEV_ACCESS;
   const ROCK_TOP_EXIT_X = 378;
   const FIXED_STEP = 1 / 120;
   const LEVELS = [
@@ -73,8 +73,9 @@
       ];
       try {
         const stored = JSON.parse(localStorage.getItem('karambe-water-run-best-times') || '[]');
-        this.bestTimes = Array.isArray(stored) ? stored.slice(0, LEVELS.length) : [];
-        this.bestTotal = Number(localStorage.getItem('karambe-water-run-best-total') || 0);
+        this.bestTimes = Array.isArray(stored) ? stored.slice(0, LEVELS.length).map(value => { const time = Number(value); return Number.isFinite(time) && time >= 0 ? time : 0; }) : [];
+        const total = Number(localStorage.getItem('karambe-water-run-best-total') || 0);
+        this.bestTotal = Number.isFinite(total) && total >= 0 ? total : 0;
         this.fullRunCompleted = localStorage.getItem('karambe-water-run-full-clear') === '1';
       } catch {
         this.bestTimes = [];
@@ -82,6 +83,11 @@
         this.fullRunCompleted = false;
       }
       this.runMode = 'full';
+      this.reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      this.staticBackground = document.createElement('canvas');
+      this.staticTerrain = document.createElement('canvas');
+      for (const layer of [this.staticBackground, this.staticTerrain]) { layer.width = WORLD_W; layer.height = WORLD_H; }
+      this.buildStaticLayers();
       this.resize();
       this.reset();
       requestAnimationFrame((t) => this.frame(t));
@@ -173,7 +179,7 @@
     }
 
     canSelectLevels() {
-      return this.fullRunCompleted || BUILD_LEVEL_SELECT;
+      return true;
     }
 
     start() {
@@ -254,7 +260,7 @@
       const index = this.level - 1;
       if (!this.bestTimes[index] || time < this.bestTimes[index]) {
         this.bestTimes[index] = time;
-        try { if (!BUILD_LEVEL_SELECT) localStorage.setItem('karambe-water-run-best-times', JSON.stringify(this.bestTimes)); } catch {}
+        try { if (PERSIST_RECORDS) localStorage.setItem('karambe-water-run-best-times', JSON.stringify(this.bestTimes)); } catch {}
       }
       if (this.runMode === 'single') {
         this.state = 'singleComplete';
@@ -269,10 +275,10 @@
         this.totalTime = this.levelResults.reduce((sum, item) => sum + (item?.time || 0), 0);
         if (!this.bestTotal || this.totalTime < this.bestTotal) {
           this.bestTotal = this.totalTime;
-          try { if (!BUILD_LEVEL_SELECT) localStorage.setItem('karambe-water-run-best-total', String(this.bestTotal)); } catch {}
+          try { if (PERSIST_RECORDS) localStorage.setItem('karambe-water-run-best-total', String(this.bestTotal)); } catch {}
         }
         this.fullRunCompleted = true;
-        try { if (!BUILD_LEVEL_SELECT) localStorage.setItem('karambe-water-run-full-clear', '1'); } catch {}
+        try { if (PERSIST_RECORDS) localStorage.setItem('karambe-water-run-full-clear', '1'); } catch {}
         showOverlay('over');
       }
     }
@@ -280,10 +286,26 @@
     resize() {
       const rect = this.canvas.getBoundingClientRect();
       const dpr = Math.min(2.5, window.devicePixelRatio || 1);
-      this.canvas.width = Math.max(1, Math.round(rect.width * dpr));
-      this.canvas.height = Math.max(1, Math.round(rect.height * dpr));
+      const width = Math.max(1, Math.round(rect.width * dpr));
+      const height = Math.max(1, Math.round(rect.height * dpr));
+      if (this.canvas.width !== width) this.canvas.width = width;
+      if (this.canvas.height !== height) this.canvas.height = height;
       this.scaleX = this.canvas.width / WORLD_W;
       this.scaleY = this.canvas.height / WORLD_H;
+    }
+
+    buildStaticLayers() {
+      const background = this.staticBackground.getContext('2d');
+      const terrain = this.staticTerrain.getContext('2d');
+      background.clearRect(0, 0, WORLD_W, WORLD_H);
+      terrain.clearRect(0, 0, WORLD_W, WORLD_H);
+      background.lineCap = terrain.lineCap = 'round';
+      background.lineJoin = terrain.lineJoin = 'round';
+      this.drawBackground(background);
+      this.drawVillage(terrain);
+      this.drawMountainPaths(terrain);
+      this.drawPuddle(terrain);
+      this.drawTank(terrain);
     }
 
     surfaceY(index, x) {
@@ -301,6 +323,7 @@
       const dt = Math.min(.05, wallDt);
       this.last = now;
       if (this.state === 'playing') {
+        this.controls?.flush();
         this.elapsed += wallDt - dt; // Stopwatch retains time even when simulation catches up conservatively.
         this.accum += dt;
         let steps = 0;
@@ -319,7 +342,6 @@
     }
 
     update(dt) {
-      this.controls?.flush();
       const attempt = this.attemptVersion;
       this.elapsed += dt;
       this.updateMessage(dt);
@@ -1122,13 +1144,15 @@
     }
 
     updateParticles(dt) {
+      let write = 0;
       for (const q of this.particles) {
         q.life -= dt;
         q.vy += 150 * dt;
         q.x += q.vx * dt;
         q.y += q.vy * dt;
+        if (q.life > 0) this.particles[write++] = q;
       }
-      this.particles = this.particles.filter((q) => q.life > 0);
+      this.particles.length = write;
     }
 
     render() {
@@ -1139,13 +1163,10 @@
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       this.drawSky(ctx);
-      this.drawBackground(ctx);
+      ctx.drawImage(this.staticBackground, 0, 0);
       this.drawSun(ctx);
-      this.drawVillage(ctx);
-      this.drawMountainPaths(ctx);
-      this.drawPuddle(ctx);
+      ctx.drawImage(this.staticTerrain, 0, 0);
       this.drawBridge(ctx);
-      this.drawTank(ctx);
       this.drawChimp(ctx);
       if (this.hasSnakes()) this.drawSnakes(ctx);
       if (this.hasRocks()) this.drawRocks(ctx);
@@ -1329,7 +1350,7 @@
       const y1 = this.surfaceY(2, BRIDGE_X1), y2 = this.surfaceY(2, BRIDGE_X2);
       const b = this.bridge;
       ctx.save();
-      const warningShake = b.state === 'warning' ? Math.sin(b.shake * 44) * 2.4 : 0;
+      const warningShake = b.state === 'warning' && !this.reducedMotion ? Math.sin(b.shake * 44) * 2.4 : 0;
       ctx.translate(0, warningShake);
       ctx.strokeStyle = '#4c3324'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(BRIDGE_X1 - 5, y1 - 20); ctx.quadraticCurveTo(260, (y1+y2)/2 - 10, BRIDGE_X2 + 5, y2 - 20); ctx.stroke();
@@ -1383,7 +1404,7 @@
       ctx.fillStyle='#6b4b32'; ctx.fillRect(-38,25,76,12);
       ctx.fillStyle='#8b6941'; ctx.fillRect(-34,24,68,4);
       const active = this.hasRocks();
-      const bounce = active && c.phase === 'windup' ? -3 : Math.sin(this.elapsed*3)*1.2;
+      const bounce = this.reducedMotion ? 0 : active && c.phase === 'windup' ? -3 : Math.sin(this.elapsed*3)*1.2;
       ctx.translate(0,bounce);
       ctx.strokeStyle='#3a251d'; ctx.lineWidth=8;
       ctx.beginPath(); ctx.moveTo(-14,18); ctx.lineTo(-25,31); ctx.moveTo(14,18); ctx.lineTo(25,31); ctx.stroke();
@@ -1478,8 +1499,8 @@
       ctx.strokeStyle='#6f5710'; ctx.lineWidth=2; ctx.stroke();
       ctx.fillStyle='#142a27'; ctx.fillRect(-4,-12,8,6);
       ctx.strokeStyle='#6f5710'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(-5,-13); ctx.lineTo(-5,-19); ctx.lineTo(5,-19); ctx.lineTo(5,-13); ctx.stroke();
-      ctx.fillStyle=full ? '#4fa2c8' : 'rgba(255,255,255,.28)'; ctx.fillRect(-6,5,12,6);
-      if (full) { ctx.strokeStyle='#dff6ff'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(-5,6); ctx.quadraticCurveTo(0,4,5,6); ctx.stroke(); }
+      ctx.fillStyle=full ? '#4fa2c8' : 'rgba(255,255,255,.28)'; ctx.fillRect(-6,full ? -1 : 5,12,full ? 12 : 6);
+      if (full) { ctx.strokeStyle='#dff6ff'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(-5,1); ctx.quadraticCurveTo(0,-1,5,1); ctx.stroke(); ctx.fillStyle='#dff6ff'; ctx.beginPath(); ctx.arc(5,-7,2.2,0,Math.PI*2); ctx.fill(); }
       ctx.restore();
     }
 
@@ -1545,8 +1566,8 @@
 
   const canvas = $('game');
   const game = new Game(canvas);
-  window.CR = { buildId: BUILD_ID, saveVersion: SAVE_VERSION, dev: BUILD_LEVEL_SELECT };
-  if (BUILD_LEVEL_SELECT) window.CR.game = game;
+  window.CR = { buildId: BUILD_ID, saveVersion: SAVE_VERSION, dev: DEV_ACCESS };
+  if (DEV_ACCESS) window.CR.game = game;
   const overlay = $('overlay');
   const title = $('overlayTitle');
   const subtitle = $('overlaySubtitle');
@@ -1556,28 +1577,50 @@
   const primary = $('primaryBtn');
   const secondary = $('secondaryBtn');
   const soundBtn = $('soundBtn');
+  const downloadBtn = $('downloadBtn');
+  const installBtn = $('installBtn');
+  const offlineStatus = $('offlineStatus');
   let primaryAction = () => {}, secondaryAction = () => {};
   primary.addEventListener('click', () => { game.sound.unlock(); game.sound.menu(); primaryAction(); });
   secondary.addEventListener('click', () => { game.sound.unlock(); game.sound.menu(); secondaryAction(); });
 
   function renderLevelSelect() {
-    const available = game.canSelectLevels();
-    levelSelectBox.classList.toggle('hidden', !available);
-    if (!available) { levelSelectBox.replaceChildren(); return; }
-    const titleText = PHONE_TEST_BUILD ? 'PHONE TEST LEVEL SELECT' : BUILD_LEVEL_SELECT && !game.fullRunCompleted ? 'BUILD LEVEL SELECT' : 'LEVEL SELECT';
-    levelSelectBox.innerHTML = `<div class="level-select-title">${titleText}</div><div class="level-select-grid"></div>`;
-    const grid = levelSelectBox.querySelector('.level-select-grid');
+    levelSelectBox.classList.remove('hidden');
+    const heading = document.createElement('div');
+    heading.className = 'level-select-title';
+    heading.textContent = 'CHOOSE A LEVEL';
+    const grid = document.createElement('div');
+    grid.className = 'level-select-grid';
+    levelSelectBox.replaceChildren(heading, grid);
     for (const level of LEVELS) {
       const button = document.createElement('button');
       button.className = 'level-pick';
       const best = game.bestTimes[level.number - 1];
-      button.innerHTML = `<strong>L${level.number}<br>${level.name}</strong><span>${best ? formatTime(best) : 'NO BEST'}</span>`;
+      const strong = document.createElement('strong');
+      strong.append(`L${level.number}`, document.createElement('br'), level.name);
+      const record = document.createElement('span');
+      record.textContent = best ? formatTime(best) : 'NO BEST';
+      button.replaceChildren(strong, record);
       button.addEventListener('click', () => {
+        game.sound.unlock();
+        game.sound.menu();
         overlay.classList.remove('open');
         game.startLevel(level.number);
       });
       grid.append(button);
     }
+  }
+
+  function renderStats(rows) {
+    const nodes = [];
+    for (const [label, value] of rows) {
+      const name = document.createElement('span');
+      const result = document.createElement('strong');
+      name.textContent = label;
+      result.textContent = value;
+      nodes.push(name, result);
+    }
+    statsBox.replaceChildren(...nodes);
   }
 
   function showOverlay(mode) {
@@ -1586,20 +1629,19 @@
     secondary.classList.add('hidden');
     body.classList.add('hidden');
     levelSelectBox.classList.add('hidden');
+    downloadBtn.classList.add('hidden');
+    installBtn.classList.add('hidden');
     if (mode === 'start') {
-      title.innerHTML = 'Karambe Village<br>Water Run';
-      subtitle.textContent = 'Three levels. Deliver three cans in each as fast as possible.';
-      body.classList.remove('hidden');
+      title.textContent = 'Karambe Village Water Run';
+      subtitle.textContent = 'Choose a level or race the complete three-level run.';
       renderLevelSelect();
       primary.textContent = 'START FULL RUN';
       primaryAction = () => { overlay.classList.remove('open'); game.start(); };
-      if (PHONE_TEST_BUILD) {
-        subtitle.textContent = 'Phone test — choose any level below.';
-        body.classList.add('hidden');
-        secondary.classList.remove('hidden');
-        secondary.textContent = 'HOW TO PLAY';
-        secondaryAction = () => { body.classList.toggle('hidden'); secondary.textContent = body.classList.contains('hidden') ? 'HOW TO PLAY' : 'HIDE HELP'; };
-      }
+      secondary.classList.remove('hidden');
+      secondary.textContent = 'HOW TO PLAY';
+      secondaryAction = () => { body.classList.toggle('hidden'); secondary.textContent = body.classList.contains('hidden') ? 'HOW TO PLAY' : 'HIDE HELP'; };
+      if (location.protocol !== 'file:') downloadBtn.classList.remove('hidden');
+      installBtn.classList.remove('hidden');
     } else if (mode === 'pause') {
       title.textContent = `Paused — Level ${game.level}`;
       subtitle.textContent = `Stopwatch paused at ${formatTime(game.elapsed)}.`;
@@ -1616,13 +1658,7 @@
       const result = game.levelResults[game.level - 1];
       title.textContent = `Level ${game.level} Clear`;
       subtitle.textContent = `Three cans delivered in ${formatTime(result.time)}.`;
-      statsBox.innerHTML = `
-        <span>Level time</span><strong>${formatTime(result.time)}</strong>
-        <span>Can 1</span><strong>${formatTime(result.splits[0])}</strong>
-        <span>Can 2</span><strong>${formatTime(result.splits[1])}</strong>
-        <span>Can 3</span><strong>${formatTime(result.splits[2])}</strong>
-        <span>Retries</span><strong>${result.retries}</strong>
-        <span>Best</span><strong>${formatTime(game.bestTimes[game.level - 1])}</strong>`;
+      renderStats([['Level time', formatTime(result.time)], ['Can 1', formatTime(result.splits[0])], ['Can 2', formatTime(result.splits[1])], ['Can 3', formatTime(result.splits[2])], ['Retries', String(result.retries)], ['Best', formatTime(game.bestTimes[game.level - 1])]]);
       statsBox.classList.remove('hidden');
       renderLevelSelect();
       primary.textContent = `RUN LEVEL ${game.level} AGAIN`;
@@ -1635,14 +1671,7 @@
       const result = game.levelResults[game.level - 1];
       title.textContent = `Level ${game.level} Clear`;
       subtitle.textContent = `Three cans delivered in ${formatTime(result.time)}.`;
-      statsBox.innerHTML = `
-        <span>Level time</span><strong>${formatTime(result.time)}</strong>
-        <span>Can 1</span><strong>${formatTime(result.splits[0])}</strong>
-        <span>Can 2</span><strong>${formatTime(result.splits[1])}</strong>
-        <span>Can 3</span><strong>${formatTime(result.splits[2])}</strong>
-        <span>Retries</span><strong>${result.retries}</strong>
-        <span>Best</span><strong>${formatTime(game.bestTimes[game.level - 1])}</strong>
-        <span>Next</span><strong>${game.level + 1}: ${next.name}</strong>`;
+      renderStats([['Level time', formatTime(result.time)], ['Can 1', formatTime(result.splits[0])], ['Can 2', formatTime(result.splits[1])], ['Can 3', formatTime(result.splits[2])], ['Retries', String(result.retries)], ['Best', formatTime(game.bestTimes[game.level - 1])], ['Next', `${game.level + 1}: ${next.name}`]]);
       statsBox.classList.remove('hidden');
       primary.textContent = `START LEVEL ${game.level + 1}`;
       primaryAction = () => { overlay.classList.remove('open'); game.advanceLevel(); };
@@ -1655,15 +1684,7 @@
       const l3 = game.levelResults[2];
       title.textContent = 'Water Run Complete';
       subtitle.textContent = `Nine cans delivered in ${formatTime(game.totalTime)}.`;
-      statsBox.innerHTML = `
-        <span>Level 1</span><strong>${formatTime(l1?.time)}</strong>
-        <span>Level 2</span><strong>${formatTime(l2?.time)}</strong>
-        <span>Level 3</span><strong>${formatTime(l3?.time)}</strong>
-        <span>Total time</span><strong>${formatTime(game.totalTime)}</strong>
-        <span>Total retries</span><strong>${game.stats.retries}</strong>
-        <span>Rocks blocked</span><strong>${game.stats.rocks}</strong>
-        <span>Snakes squashed</span><strong>${game.stats.snakes}</strong>
-        <span>Best total</span><strong>${formatTime(game.bestTotal)}</strong>`;
+      renderStats([['Level 1', formatTime(l1?.time)], ['Level 2', formatTime(l2?.time)], ['Level 3', formatTime(l3?.time)], ['Total time', formatTime(game.totalTime)], ['Total retries', String(game.stats.retries)], ['Rocks blocked', String(game.stats.rocks)], ['Snakes squashed', String(game.stats.snakes)], ['Best total', formatTime(game.bestTotal)]]);
       statsBox.classList.remove('hidden');
       renderLevelSelect();
       primary.textContent = 'RUN ALL LEVELS AGAIN';
@@ -1681,6 +1702,11 @@
     soundBtn.textContent = `SOUND: ${game.sound.enabled ? 'ON' : 'OFF'}`;
   });
 
+  installBtn.addEventListener('click', () => {
+    subtitle.textContent = 'Chrome menu ⋮ → Add to Home screen. Download Offline Game below is the no-connection copy.';
+  });
+  if (location.protocol === 'file:') offlineStatus.classList.remove('hidden');
+
   $('menuBtn').addEventListener('click', () => {
     game.sound.unlock();
     if (game.state === 'playing') { game.pause(); showOverlay('pause'); }
@@ -1693,7 +1719,7 @@
     game.sound.menu();
   });
 
-  const controls = createGameControls(game, { showOverlay });
+  const controls = createGameControls(game);
   game.controls = controls;
   game.cancelControlTouches = (reason) => controls.releaseAll(reason);
   window.CR.runFullSelfCheck = () => {
@@ -1712,7 +1738,7 @@
     };
     return { pass: Object.values(checks).every(Boolean), buildId: BUILD_ID, checks };
   };
-  if (BUILD_LEVEL_SELECT) window.CR.controls = controls;
+  if (DEV_ACCESS) window.CR.controls = controls;
   const pauseWhenHidden = () => {
     controls.releaseAll('hidden');
     if (game.state === 'playing') { game.pause(); showOverlay('pause'); }
@@ -1722,7 +1748,5 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden) pauseWhenHidden(); });
   window.addEventListener('resize', () => { game.resize(); if (innerWidth > innerHeight && innerHeight < 520) pauseWhenHidden(); });
   new ResizeObserver(() => game.resize()).observe($('stage'));
-  document.addEventListener('contextmenu', (e) => e.preventDefault());
-
   showOverlay('start');
 })();

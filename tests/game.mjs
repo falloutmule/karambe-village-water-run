@@ -70,11 +70,10 @@ const checks=await page.evaluate(async()=>{
 await page.screenshot({path:'test-results/gameplay.png'});
 if(errors.length||requests.length)throw Error(JSON.stringify({errors,requests}));
 await page.goto(pathToFileURL(path.resolve('index.html')).href);
-if(await page.locator('#levelSelectBox').isVisible())throw Error('Release first-run Level Select exposed');
+if(await page.locator('.level-pick').count()!==3||!await page.locator('#levelSelectBox').isVisible())throw Error('Release Level Select missing');
 if(await page.evaluate(()=>!!CR.game))throw Error('Release exposes mutable game debug API');
 await page.screenshot({path:'test-results/release-menu.png'});
 fs.writeFileSync('test-results/game.json',JSON.stringify({pass:true,checks,errors,unexpectedRequests:requests,physicalPhone:'not tested'},null,2));
-console.log('PASS '+checks.length+' gameplay checks; release menu locked; no unexpected network or console errors');
+console.log('PASS '+checks.length+' gameplay checks; public level selector available; no unexpected network or console errors');
 await browser.close();
-
 

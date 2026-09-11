@@ -16,7 +16,8 @@ page.on('request',r=>{if(r.resourceType()!=='document'&&!r.url().startsWith('dat
 page.on('requestfailed',r=>errors.push(r.failure()?.errorText));
 try{
  await page.goto(url,{waitUntil:'networkidle'});
- assert.equal(await page.locator('#levelSelectBox').isVisible(),false);
+ assert.equal(await page.locator('.level-pick').count(),3);
+ assert.equal(await page.locator('#levelSelectBox').isVisible(),true);
  assert.ok(await page.evaluate(()=>!CR.dev&&!CR.game&&CR.runFullSelfCheck().pass));
  await page.locator('#primaryBtn').click();
  await page.waitForTimeout(200);
@@ -36,7 +37,8 @@ try{
  assert.equal(await page.locator('#primaryBtn').textContent(),'RESUME');
  await page.goto(url+'?dev=1',{waitUntil:'networkidle'});
  assert.ok(await page.evaluate(()=>!CR.dev&&!CR.game));
- assert.equal(await page.locator('#levelSelectBox').isVisible(),false);
+ assert.equal(await page.locator('.level-pick').count(),3);
+ assert.equal(await page.locator('#levelSelectBox').isVisible(),true);
  assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);
  const proof={pass:true,url,status:response.status,bytes:live.length,sha256:crypto.createHash('sha256').update(live).digest('hex'),build:check.buildId,selfcheck:check,liveMultitouchAndCancel:true,publicDevFlagDisabled:true,errors,unexpectedRequests:unexpected,physicalPhone:'not tested'};
  fs.writeFileSync('test-results/pages-live/proof.json',JSON.stringify(proof,null,2));
