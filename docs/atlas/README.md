@@ -2,7 +2,16 @@
 
 Open [gameplay.html](gameplay.html) for the can loop, route rules, hazards, retry, stopwatch and progress sun. Open [runtime.html](runtime.html) for input ownership, simulation, feedback, persistence and packaging. Each viewer includes three guided views, search, zoom and light/dark themes.
 
-These are native Archify architecture specifications and local HTML exports produced with the installed Atlas-pinned Archify **2.16.0** engine. The installed Atlas skill provides checkout briefs, bindings and factual checkpoints; it has no repository diagram-registration convention. Therefore these live under `docs/atlas/` as repository documentation. They are **not accepted Atlas workspace artifacts**. No Atlas project registration, automatic checkpoint opt-in, source pin, or acceptance record is implied.
+This checkout is explicitly bound to the Atlas project `karambe-village-water-run`.
+The authoritative gameplay model is Atlas trial
+`trial-3bba5f1b-b28b-4316-abaf-ac455b1a2c42`, pinned to source commit
+`889759c86a087c02183920c616779837a969d69c`. Atlas independently passed its
+evidence lock, nine-check showcase validation, delivery, source audit, and
+visual capture/readability checks. It remains a delivered candidate pending the
+separate human comprehension review required for Atlas acceptance.
+
+The files here are the portable source specification, evidence ledger, and local
+offline reference exports. They do not replace the Atlas workspace record.
 
 The stock viewer's optional Google font links were removed in separate offline derivatives by [offline-export.mjs](offline-export.mjs). No diagram content, geometry or viewer logic was changed. [export-record.json](export-record.json) records separate native and offline SHA-256 values. The original delivered bytes and raw machine-path-bearing receipts remain in ignored `test-results/atlas/`; they are not public repository material.
 
@@ -30,4 +39,4 @@ node $archifyCli deliver architecture docs/atlas/gameplay.architecture.json test
 node docs/atlas/offline-export.mjs
 ```
 
-Both native specifications passed all nine showcase checks with zero composition errors and warnings, and native delivery succeeded. The final offline derivatives passed Chromium containment checks at 1440×900, 1600×1000, 1920×1080 and 2048×1320 in both themes. Small/large screenshots were inspected for readable labels, clear routes and complete cards. Standalone Chromium smoke found zero unexpected network requests and zero JavaScript errors for both offline views. See [verification.json](verification.json) for the portable summary. This is diagram engineering evidence, not game or physical Android acceptance. Atlas's separate six-gate accepted-artifact workflow and full interactive viewer acceptance were not run.
+Both native specifications passed all nine showcase checks with zero composition errors and warnings, and native delivery succeeded. The final offline derivatives passed Chromium containment checks at 1440×900, 1600×1000, 1920×1080 and 2048×1320 in both themes. Small/large screenshots were inspected for readable labels, clear routes and complete cards. Standalone Chromium smoke found zero unexpected network requests and zero JavaScript errors for both offline views. See [verification.json](verification.json) for the portable summary. The bound Atlas gameplay trial adds a passing four-claim/eleven-source evidence receipt and a separate passing source audit. This is diagram engineering evidence, not game or physical Android acceptance.

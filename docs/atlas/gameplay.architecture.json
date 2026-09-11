@@ -24,10 +24,11 @@
           "delivery",
           "bank",
           "progression",
+          "unlock",
           "sun",
           "clock"
         ],
-        "note": "Three deliveries complete a level. Retry preserves banked cans and elapsed time."
+        "note": "Three deliveries complete a level. The first sequential full clear permanently unlocks Level Select."
       },
       {
         "id": "failure",
@@ -131,10 +132,24 @@
       "id": "progression",
       "type": "backend",
       "label": "Level progression",
-      "sublabel": "L1 → L2 → L3; select anytime",
+      "sublabel": "First run requires L1 → L2 → L3",
       "pos": [
         350,
         240
+      ],
+      "size": [
+        205,
+        72
+      ]
+    },
+    {
+      "id": "unlock",
+      "type": "database",
+      "label": "Level Select unlock",
+      "sublabel": "Persist after one sequential clear",
+      "pos": [
+        350,
+        450
       ],
       "size": [
         205,
@@ -229,6 +244,21 @@
       "from": "bank",
       "to": "progression",
       "label": "third can"
+    },
+    {
+      "from": "progression",
+      "to": "unlock",
+      "label": "L3 full clear",
+      "labelAt": [
+        453,
+        326
+      ]
+    },
+    {
+      "from": "unlock",
+      "to": "player",
+      "label": "choose level",
+      "labelDy": 55
     },
     {
       "from": "bank",

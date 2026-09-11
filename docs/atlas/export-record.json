@@ -4,8 +4,8 @@
   "records": [
     {
       "view": "gameplay",
-      "nativeSha256": "8e70d475f85e3a2eda6d578229a74e765a187287646440bb3491809989af6c0b",
-      "offlineSha256": "f2c23f1082c8da864a4edb7a874dd4f4ca1213c3067a6c2aa1151f0fbb16795c",
+      "nativeSha256": "d089329651c6ee49438fe46ba90a2ffb2609c8afaf8b30f99ea14d69fbc53a66",
+      "offlineSha256": "5cdbede7e50dc623c4a979bf87eb79e51fa294cbe5daac577a64e56f21369caa",
       "output": "docs/atlas/gameplay.html",
       "adaptation": "Removed only three optional Google font/preconnect link elements; stock system-monospace fallback remains."
     },

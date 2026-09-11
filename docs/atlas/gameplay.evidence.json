@@ -1,0 +1,44 @@
+{
+  "schema": "atlas.evidence@1",
+  "claims": [
+    {
+      "id": "input-and-carry-loop",
+      "objects": ["component:player", "component:empty", "component:fill", "component:full", "view:trip", "card:Carry and route rules"],
+      "statement": "Player input drives empty-can movement, hold-to-fill, and full-can return constraints.",
+      "sources": [
+        {"type": "git-lines", "repository": "falloutmule/karambe-village-water-run", "revision": "889759c86a087c02183920c616779837a969d69c", "path": "src/game.js", "startLine": 570, "endLine": 868},
+        {"type": "git-lines", "repository": "falloutmule/karambe-village-water-run", "revision": "889759c86a087c02183920c616779837a969d69c", "path": "src/controls.ts", "startLine": 115, "endLine": 173}
+      ]
+    },
+    {
+      "id": "delivery-bank-and-timing",
+      "objects": ["component:delivery", "component:bank", "component:clock", "component:sun", "view:checkpoint"],
+      "statement": "Delivery banks one can, records splits, completes the level at three, and drives stopwatch and progress state.",
+      "sources": [
+        {"type": "git-lines", "repository": "falloutmule/karambe-village-water-run", "revision": "889759c86a087c02183920c616779837a969d69c", "path": "src/game.js", "startLine": 243, "endLine": 285},
+        {"type": "git-lines", "repository": "falloutmule/karambe-village-water-run", "revision": "889759c86a087c02183920c616779837a969d69c", "path": "src/game.js", "startLine": 294, "endLine": 336},
+        {"type": "git-lines", "repository": "falloutmule/karambe-village-water-run", "revision": "889759c86a087c02183920c616779837a969d69c", "path": "src/game.js", "startLine": 870, "endLine": 895}
+      ]
+    },
+    {
+      "id": "sequential-unlock",
+      "objects": ["component:progression", "component:unlock", "card:Retry and persistence"],
+      "statement": "Release level selection is gated until one sequential full L1-L2-L3 completion persists the unlock; trusted development access can bypass without saving.",
+      "sources": [
+        {"type": "git-lines", "repository": "falloutmule/karambe-village-water-run", "revision": "889759c86a087c02183920c616779837a969d69c", "path": "src/game.js", "startLine": 178, "endLine": 211},
+        {"type": "git-lines", "repository": "falloutmule/karambe-village-water-run", "revision": "889759c86a087c02183920c616779837a969d69c", "path": "src/game.js", "startLine": 243, "endLine": 285},
+        {"type": "git-lines", "repository": "falloutmule/karambe-village-water-run", "revision": "889759c86a087c02183920c616779837a969d69c", "path": "src/storage.js", "startLine": 9, "endLine": 38}
+      ]
+    },
+    {
+      "id": "hazards-and-retry",
+      "objects": ["component:hazards", "component:retry", "view:failure", "card:Hazards by level"],
+      "statement": "Level-gated rocks, snakes, and walkway failures reset the current can while preserving elapsed time and banked deliveries.",
+      "sources": [
+        {"type": "git-lines", "repository": "falloutmule/karambe-village-water-run", "revision": "889759c86a087c02183920c616779837a969d69c", "path": "src/game.js", "startLine": 294, "endLine": 322},
+        {"type": "git-lines", "repository": "falloutmule/karambe-village-water-run", "revision": "889759c86a087c02183920c616779837a969d69c", "path": "src/game.js", "startLine": 412, "endLine": 491},
+        {"type": "git-lines", "repository": "falloutmule/karambe-village-water-run", "revision": "889759c86a087c02183920c616779837a969d69c", "path": "src/game.js", "startLine": 946, "endLine": 1076}
+      ]
+    }
+  ]
+}
