@@ -63,16 +63,16 @@ const checks=await page.evaluate(async()=>{
  }
  ok('three genuine L1 route deliveries',g.levelCans===3&&g.levelRetries===0&&g.canSplits.length===3,route);
  const finish=g.elapsed;await new Promise(r=>setTimeout(r,450));ok('level timer stops',g.elapsed===finish&&g.state==='singleComplete');
- ok('legacy level-select gate is removed',localStorage.getItem('karambe-water-run-full-clear')===null);
+ ok('development single-level run does not write release unlock',localStorage.getItem('karambe-water-run-full-clear')===null);
  const before=JSON.stringify({p:g.player,c:g.can,s:g.snakes,r:g.rocks,e:g.elapsed,progress:g.tripProgress});g.render();g.render();ok('render does not mutate gameplay',before===JSON.stringify({p:g.player,c:g.can,s:g.snakes,r:g.rocks,e:g.elapsed,progress:g.tripProgress}));
  g.controls=controls;g.start();document.getElementById('overlay').classList.remove('open');g.render();ok('built read-only selfcheck',CR.runFullSelfCheck().pass);return checks;
 });
 await page.screenshot({path:'test-results/gameplay.png'});
 if(errors.length||requests.length)throw Error(JSON.stringify({errors,requests}));
 await page.goto(pathToFileURL(path.resolve('index.html')).href);
-if(await page.locator('.level-pick').count()!==3||!await page.locator('#levelSelectBox').isVisible())throw Error('Release Level Select missing');
+if(await page.locator('.level-pick').count()!==0||await page.locator('#levelSelectBox').isVisible())throw Error('Fresh release Level Select must stay locked');
 if(await page.evaluate(()=>!!CR.game))throw Error('Release exposes mutable game debug API');
 await page.screenshot({path:'test-results/release-menu.png'});
 fs.writeFileSync('test-results/game.json',JSON.stringify({pass:true,checks,errors,unexpectedRequests:requests,physicalPhone:'not tested'},null,2));
-console.log('PASS '+checks.length+' gameplay checks; public level selector available; no unexpected network or console errors');
+console.log('PASS '+checks.length+' gameplay checks; fresh release selector locked; no unexpected network or console errors');
 await browser.close();

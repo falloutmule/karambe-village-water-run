@@ -12,12 +12,12 @@ Arrow labels state important transitions and ownership. Cards provide the relati
 
 - `src/game.js`: `Game`, movement and connector state, can interactions, hazard updates, retry, delivery, and level timing. A retry preserves `levelCans`, `elapsed`, splits and banked progress while rebuilding the current attempt.
 - `src/renderer.js`: static canvas layers and the complete read-only draw path. `src/loop.js` owns the fixed-step animation loop.
-- `src/ui.js`: accessible dialog, Level Select, statistics, sound/install/menu actions, focus management and live announcements. `src/storage.js` validates and stores best times and best total while removing the obsolete unlock key.
+- `src/ui.js`: accessible dialog, gated Level Select, statistics, sound/install/menu actions, focus management and live announcements. `src/storage.js` validates and stores best times, best total and the permanent full-run unlock.
 - `src/controls.ts`: product actions and keyboard/assistive input over the pinned `vendor/sfhs/mobile-controls` runtime. SFHS owns contacts, active visuals, release batching and the opt-in Android native Touch default suppression contract.
 - `src/audio.js`: product-local synthesized effects/music, persisted sound preference and scheduling diagnostics. `src/main.js` composes the modules and exposes the read-only production self-check.
 - `src/game.html`: canonical HTML/CSS shell. `tools/build.mjs` bundles the manifest entry and inlines it into root `index.html`, the distributed game.
 
-The gameplay map deliberately separates the bank from the current can: delivery increments the bank, third delivery stops the timer, and a failed attempt only rolls the sun back to that can's segment. The arrows between levels summarize full-run order; Level Select is available immediately and from the menu. Rock and snake eligibility remains tied to route/platform/connector state, not just visual overlap.
+The gameplay map deliberately separates the bank from the current can: delivery increments the bank, third delivery stops the timer, and a failed attempt only rolls the sun back to that can's segment. The arrows between levels summarize the required first full run; completing L1→L2→L3 permanently unlocks Level Select. Rock and snake eligibility remains tied to route/platform/connector state, not just visual overlap.
 
 ## Reproduce
 

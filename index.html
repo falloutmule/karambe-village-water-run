@@ -329,7 +329,7 @@
       <div class="rule"><b>Full can:</b> take the long path left of water. To jump, put it down, jump, then retrieve it.</div>
       <div class="rule"><b>Rocks (L2+):</b> face the rock and hold CAN to block, or place the can in its path.</div>
       <div class="rule"><b>Snakes (L3):</b> jump onto them or place a full can ahead to crush them.</div>
-      <div class="rule"><b>Fast retry:</b> delivered cans stay banked. Only time is lost. Level Select is always available from the menu.</div>
+      <div class="rule"><b>Fast retry:</b> delivered cans stay banked. Only time is lost. Complete Levels 1, 2, and 3 in one full run to permanently unlock Level Select.</div>
     </div>
     <div id="statsBox" class="stats hidden"></div>
     <div id="levelSelectBox" class="level-select hidden" aria-label="Level select"></div>
@@ -1780,7 +1780,7 @@
   };
 
   // src/game.js
-  var BUILD_ID = "karambe-cleanup1";
+  var BUILD_ID = "karambe-unlock1";
   var SAVE_VERSION = 1;
   var WORLD_W = 480;
   var WORLD_H = 860;
@@ -1846,7 +1846,7 @@
         { x1: 35, y1: 652, x2: 385, y2: 692, downhill: 1 },
         { x1: 35, y1: 792, x2: 420, y2: 747, downhill: -1 }
       ];
-      ({ bestTimes: this.bestTimes, bestTotal: this.bestTotal } = this.records.load());
+      ({ bestTimes: this.bestTimes, bestTotal: this.bestTotal, fullRunUnlocked: this.fullRunUnlocked } = this.records.load());
       this.runMode = "full";
       this.motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
       this.reducedMotion = this.motionPreference.matches;
@@ -1950,7 +1950,11 @@
       this.last = performance.now();
       this.sound.unlock();
     }
+    canSelectLevels() {
+      return DEV_ACCESS || this.fullRunUnlocked;
+    }
     startLevel(levelNumber) {
+      if (!this.canSelectLevels()) return false;
       const selected = clamp(Math.round(levelNumber), 1, LEVELS.length);
       this.runMode = "single";
       this.level = selected;
@@ -1962,6 +1966,7 @@
       this.state = "playing";
       this.last = performance.now();
       this.sound.unlock();
+      return true;
     }
     advanceLevel() {
       if (this.level >= LEVELS.length) return;
@@ -2032,6 +2037,11 @@
         if (!this.bestTotal || this.totalTime < this.bestTotal) {
           this.bestTotal = this.totalTime;
           this.records.saveBestTotal(this.bestTotal);
+        }
+        const completedSequentialRun = LEVELS.every((level, index2) => this.levelResults[index2]?.level === level.number);
+        if (completedSequentialRun && !this.fullRunUnlocked) {
+          this.fullRunUnlocked = true;
+          this.records.saveFullRunUnlocked();
         }
         this.showOverlay("over");
         this.onStatus("WATER RUN COMPLETE");
@@ -3642,27 +3652,28 @@
   // src/storage.js
   var BEST_TIMES_KEY = "karambe-water-run-best-times";
   var BEST_TOTAL_KEY = "karambe-water-run-best-total";
-  var LEGACY_UNLOCK_KEY = "karambe-water-run-full-clear";
+  var FULL_RUN_UNLOCK_KEY = "karambe-water-run-full-clear";
   var validTime = (value) => {
     const time = Number(value);
     return Number.isFinite(time) && time >= 0 ? time : 0;
   };
   function createRecordStore(enabled, levelCount) {
     const load = () => {
-      try {
-        localStorage.removeItem(LEGACY_UNLOCK_KEY);
-      } catch {
-      }
-      if (!enabled) return { bestTimes: [], bestTotal: 0 };
+      if (!enabled) return { bestTimes: [], bestTotal: 0, fullRunUnlocked: false };
+      let bestTimes = [];
       try {
         const stored = JSON.parse(localStorage.getItem(BEST_TIMES_KEY) || "[]");
-        return {
-          bestTimes: Array.isArray(stored) ? stored.slice(0, levelCount).map(validTime) : [],
-          bestTotal: validTime(localStorage.getItem(BEST_TOTAL_KEY))
-        };
+        bestTimes = Array.isArray(stored) ? stored.slice(0, levelCount).map(validTime) : [];
       } catch {
-        return { bestTimes: [], bestTotal: 0 };
       }
+      let bestTotal = 0;
+      let fullRunUnlocked = false;
+      try {
+        bestTotal = validTime(localStorage.getItem(BEST_TOTAL_KEY));
+        fullRunUnlocked = localStorage.getItem(FULL_RUN_UNLOCK_KEY) === "1";
+      } catch {
+      }
+      return { bestTimes, bestTotal, fullRunUnlocked };
     };
     const write = (key, value) => {
       if (!enabled) return;
@@ -3674,7 +3685,8 @@
     return {
       load,
       saveBestTimes: (times) => write(BEST_TIMES_KEY, JSON.stringify(times)),
-      saveBestTotal: (time) => write(BEST_TOTAL_KEY, String(time))
+      saveBestTotal: (time) => write(BEST_TOTAL_KEY, String(time)),
+      saveFullRunUnlocked: () => write(FULL_RUN_UNLOCK_KEY, "1")
     };
   }
 
@@ -3711,6 +3723,11 @@
       secondaryAction();
     });
     function renderLevelSelect() {
+      if (!game2.canSelectLevels()) {
+        levelSelectBox.replaceChildren();
+        levelSelectBox.classList.add("hidden");
+        return false;
+      }
       levelSelectBox.classList.remove("hidden");
       const heading = document.createElement("div");
       heading.className = "level-select-title";
@@ -3735,6 +3752,7 @@
         });
         grid.append(button);
       }
+      return true;
     }
     function renderStats(rows) {
       const nodes = [];
@@ -3762,8 +3780,8 @@
       installBtn.classList.add("hidden");
       if (mode === "start") {
         title.textContent = "Karambe Village Water Run";
-        subtitle.textContent = "Choose a level or race the complete three-level run.";
-        renderLevelSelect();
+        const canSelect = renderLevelSelect();
+        subtitle.textContent = canSelect ? "Choose a level or race the complete three-level run." : "Complete the three-level run to unlock Level Select.";
         primary.textContent = "START FULL RUN";
         primaryAction = () => {
           closeOverlay();

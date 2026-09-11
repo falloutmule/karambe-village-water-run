@@ -24,6 +24,11 @@ export function createGameUI(game) {
   secondary.addEventListener('click', () => { game.sound.unlock(); game.sound.menu(); secondaryAction(); });
 
   function renderLevelSelect() {
+    if (!game.canSelectLevels()) {
+      levelSelectBox.replaceChildren();
+      levelSelectBox.classList.add('hidden');
+      return false;
+    }
     levelSelectBox.classList.remove('hidden');
     const heading = document.createElement('div');
     heading.className = 'level-select-title';
@@ -48,6 +53,7 @@ export function createGameUI(game) {
       });
       grid.append(button);
     }
+    return true;
   }
 
   function renderStats(rows) {
@@ -77,8 +83,8 @@ export function createGameUI(game) {
     installBtn.classList.add('hidden');
     if (mode === 'start') {
       title.textContent = 'Karambe Village Water Run';
-      subtitle.textContent = 'Choose a level or race the complete three-level run.';
-      renderLevelSelect();
+      const canSelect = renderLevelSelect();
+      subtitle.textContent = canSelect ? 'Choose a level or race the complete three-level run.' : 'Complete the three-level run to unlock Level Select.';
       primary.textContent = 'START FULL RUN';
       primaryAction = () => { closeOverlay(); game.start(); };
       secondary.classList.remove('hidden');

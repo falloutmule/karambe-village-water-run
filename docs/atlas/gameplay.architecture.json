@@ -276,7 +276,7 @@
       "items": [
         "Retry clears contacts, resets hazards and trip progress; time and bank stay.",
         "Sun rolls back only within the unfinished can segment.",
-        "Level Select is available at launch and from the menu; full-run order remains L1 → L2 → L3."
+        "The first full run is L1 → L2 → L3; completing it once permanently unlocks Level Select."
       ]
     }
   ]

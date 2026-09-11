@@ -1,6 +1,6 @@
 # Engineering verification
 
-Current candidate: `karambe-cleanup1`. Canonical input is `src/` plus its
+Current candidate: `karambe-unlock1`. Canonical input is `src/` plus its
 build manifest; root `index.html` is generated and checked byte-for-byte. This document
 records local engineering evidence, not a physical Android acceptance verdict.
 
@@ -15,8 +15,8 @@ The historical ZIP and private phone screenshots are not published here.
 Repairs include actual pinned SFHS contact ownership with a product CAN adapter;
 instant current-can reset with cause-specific feedback; no backwards can placement;
 immediate rock interception by placed cans; continuous fill-to-pour hold support;
-exactly one retry when several hazards collide; immediate Level Select;
-isolated development saves; fixed snake respawn times with safe
+exactly one retry when several hazards collide; permanent Level Select unlock
+after the first sequential three-level clear; isolated development saves; fixed snake respawn times with safe
 grace; original music/SFX and persisted mute; clearer instructions and larger HUD.
 
 ## Executed checks
@@ -30,7 +30,7 @@ grace; original music/SFX and persisted mute; clearer instructions and larger HU
   long hold, cancellation and an unfrozen real-time loop. It covers ownership,
   event batching, every control with sound on/off, canceled/outside CAN,
   assistive timers, visual clearing, blur, visibility, viewport and transitions.
-- `npm run test:release`: 46 checks for normal release boot, dialog focus/inert behavior, live status, immediate Level Select, persisted
+- `npm run test:release`: 52 checks for normal release boot, dialog focus/inert behavior, live status, locked first run, permanent sequential-clear unlock, persisted
   mute, audio gesture startup, all-level music, portrait control bounds, exact-byte
   download and standalone operation. A clearly identified fixture exposes game
   state for verification; normal release is tested separately.
@@ -43,9 +43,11 @@ grace; original music/SFX and persisted mute; clearer instructions and larger HU
   default cancellation, simultaneous contacts and clean release at 320×568,
   390×844 and 412×915, plus the exact downloaded offline artifact.
 - Browser checks report no page errors, vibration requests or unexpected runtime requests.
-- Two native Archify diagram exports pass showcase validation and offline checks;
-  see `atlas/verification.json`. Three separate staged critic passes are retained
-  in `critic-1-baseline.md`, `critic-2-core.md`, and `critic-3-final.md`.
+- Atlas is the authoritative architecture record for this checkout. Its bound
+  game diagram and review evidence are verified separately from the repo-local
+  reference exports. Three fresh independent critic passes against successive
+  states are recorded in `critic-pass-1-baseline-c218951.md`,
+  `critic-pass-2-integration.md`, and `critic-pass-3-release.md`.
 
 Raw run evidence is ignored under `test-results/`. CI recreates proofs, deploys
 only `index.html`, then retries an exact-byte live Pages check and verifies the
@@ -63,16 +65,17 @@ diagnostic rather than a physical-phone performance claim.
 Every push now has separate test, deploy and live-verification jobs. The verifier
 retries until the [Pages game](https://falloutmule.github.io/karambe-village-water-run/)
 exactly matches committed `index.html`, then checks the read-only self-check,
-immediate Level Select, public dev-flag rejection, trusted Touch cancellation,
+fresh-install Level Select lock, public dev-flag rejection, trusted Touch cancellation,
 native CDP multitouch and pause UI. It records served bytes, SHA-256, retry
 observations and runtime evidence in the workflow's `live-pages-proof` artifact.
 
 ## Phone-first testing access
 
-The public and downloadable product is one `index.html`. Its first screen exposes
-all three levels and the complete-run option. `tests/phone-access.mjs` checks touch
-selection and immediate visibility at 320×568, 390×844 and 412×915, plus standalone
-file behavior. Set `KARAMBE_LIVE=1` to compare deployed bytes with the local artifact.
+The public and downloadable product is one `index.html`. A fresh device sees only
+the complete-run option; finishing L1→L2→L3 once stores the permanent selector
+unlock. `tests/phone-access.mjs` checks the locked release screen and controls at
+320×568, 390×844 and 412×915, plus standalone development access. Set
+`KARAMBE_LIVE=1` to compare deployed bytes with the local artifact.
 
 ## Haptic behavior
 

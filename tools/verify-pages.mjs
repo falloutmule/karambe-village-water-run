@@ -55,8 +55,8 @@ try {
   page.on('requestfailed', request => errors.push(request.failure()?.errorText ?? 'request failed'));
 
   await page.goto(url, { waitUntil: 'networkidle' });
-  assert.equal(await page.locator('.level-pick').count(), 3);
-  assert.equal(await page.locator('#levelSelectBox').isVisible(), true);
+  assert.equal(await page.locator('.level-pick').count(), 0);
+  assert.equal(await page.locator('#levelSelectBox').isVisible(), false);
   const initialCheck = await page.evaluate(() => CR.runFullSelfCheck());
   assert.ok(!await page.evaluate(() => CR.dev || CR.game), 'production URL does not expose mutable debug state');
   assert.ok(initialCheck.pass, 'initial live self-check passes');
@@ -91,8 +91,8 @@ try {
   assert.equal((await page.locator('#primaryBtn').textContent())?.trim(), 'RESUME');
   await page.goto(new URL('?dev=1', url).href, { waitUntil: 'networkidle' });
   assert.ok(!await page.evaluate(() => CR.dev || CR.game), 'query flag cannot expose production debug state');
-  assert.equal(await page.locator('.level-pick').count(), 3);
-  assert.equal(await page.locator('#levelSelectBox').isVisible(), true);
+  assert.equal(await page.locator('.level-pick').count(), 0);
+  assert.equal(await page.locator('#levelSelectBox').isVisible(), false);
   assert.deepEqual(errors, []);
   assert.deepEqual(unexpected, []);
 

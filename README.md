@@ -2,8 +2,9 @@
 
 **[Play on Android Chrome](https://falloutmule.github.io/karambe-village-water-run/)**
 
-Level 1, 2 and 3 are available immediately from the opening screen. **Start Full
-Run** remains the main speedrun route.
+The first run is sequential: complete Levels 1, 2, and 3 in one full run to
+permanently unlock Level Select on that device. **Start Full Run** remains the
+main speedrun route after the selector unlocks.
 
 A portrait arcade speedrun: carry an empty jerry can down the mountain, fill it,
 then bring the heavy can home by the long route. Deliver three cans per level.
@@ -34,8 +35,8 @@ The small esbuild packer embeds the actual pinned SFHS runtime and preserved
 license; it does not claim SFHS packer certification.
 
 On localhost or a downloaded file, append `?dev=1` for the `CR.game` and
-`CR.controls` test hooks. Development sessions do not write progression or best
-times. That flag has no effect on public GitHub Pages. Normal builds
+`CR.controls` test hooks and development-only Level Select access. Development
+sessions do not write progression or best times. That flag has no effect on public GitHub Pages. Normal builds
 expose only build metadata and a read-only `CR.runFullSelfCheck()`.
 
 See [verification](docs/verification.md), [SFHS provenance](docs/sfhs.md),

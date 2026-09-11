@@ -45,7 +45,8 @@ try {
   const normal = await session();
   await normal.goto(base);
   check(await normal.evaluate(() => !CR.dev && !CR.game && !CR.controls && CR.saveVersion === 1), 'unmodified normal release has schema metadata and no debug access');
-  check(await normal.locator('.level-pick').count() === 3 && await normal.locator('#levelSelectBox').isVisible(), 'first-ever release exposes all three levels');
+  check(await normal.locator('.level-pick').count() === 0 && !await normal.locator('#levelSelectBox').isVisible(), 'first-ever release requires the full sequential run');
+  check((await normal.locator('#overlaySubtitle').textContent())?.includes('unlock Level Select'), 'fresh release explains the unlock rule');
   check(await normal.locator('#downloadBtn').isVisible() && await normal.locator('#installBtn').isVisible(), 'start menu exposes offline download and home-screen help');
   check(await normal.evaluate(() => window.__audioCreated === 0), 'no AudioContext before gesture');
   await normal.locator('#soundBtn').click();
@@ -57,7 +58,7 @@ try {
   check(await normal.locator('#overlay').evaluate(el => !el.classList.contains('open')), 'normal menu starts playable release');
   await normal.evaluate(() => localStorage.setItem('karambe-water-run-best-times', '[10,20,30]'));
   await normal.reload();
-  check(await normal.locator('.level-pick').count() === 3 && await normal.locator('#levelSelectBox').isVisible(), 'best-time entries render without gating selection');
+  check(await normal.locator('.level-pick').count() === 0 && !await normal.locator('#levelSelectBox').isVisible(), 'best-time entries alone do not unlock selection');
 
   const accessible = await session({ manual: false });
   await accessible.goto(base);
@@ -76,32 +77,38 @@ try {
   const sequential = await session();
   await sequential.goto(base + '/instrumented.html');
   check(await sequential.evaluate(() => !CR.dev && CR.game.runMode === 'full'), 'instrumented fixture retains normal release flags');
+  check(await sequential.evaluate(() => CR.game.startLevel(3) === false && CR.game.level === 1 && CR.game.state === 'ready'), 'release game API blocks direct level entry while locked');
   await sequential.locator('#primaryBtn').click();
   for (let level = 1; level <= 3; level++) {
     check(await sequential.evaluate(n => CR.game.level === n && CR.game.state === 'playing', level), `full run enters Level ${level} sequentially`);
     await threeCans(sequential);
     check(await sequential.evaluate(() => CR.game.canSplits.length === 3 && CR.game.levelCans === 3), `Level ${level} records three deliveries/splits`);
     if (level < 3) {
-      check(await sequential.evaluate(() => localStorage.getItem('karambe-water-run-full-clear') === null), `Level ${level} leaves no obsolete selector gate`);
+      check(await sequential.evaluate(() => localStorage.getItem('karambe-water-run-full-clear') === null && !CR.game.fullRunUnlocked), `Level ${level} keeps Level Select locked`);
       await sequential.locator('#soundBtn').focus();
       await sequential.keyboard.press('Tab');
       check(await sequential.evaluate(() => document.activeElement?.id === 'primaryBtn'), `Level ${level} dialog focus trap skips hidden Level Select descendants`);
       await sequential.locator('#primaryBtn').click();
     }
   }
-  check(await sequential.evaluate(() => CR.game.state === 'over' && localStorage.getItem('karambe-water-run-full-clear') === null), 'full sequential clear leaves selector ungated');
+  check(await sequential.evaluate(() => CR.game.state === 'over' && CR.game.fullRunUnlocked && localStorage.getItem('karambe-water-run-full-clear') === '1'), 'full sequential clear permanently unlocks selection');
+  check(await sequential.locator('.level-pick').count() === 3 && await sequential.locator('#levelSelectBox').isVisible(), 'completion dialog exposes all three levels after unlock');
   await sequential.goto(base);
   check(await sequential.evaluate(() => !CR.game && !CR.dev), 'post-clear reload is unmodified release');
-  check(await sequential.locator('.level-pick').count() === 3 && await sequential.locator('#levelSelectBox').isVisible(), 'unmodified release reload exposes all three unlocked levels');
+  check(await sequential.locator('.level-pick').count() === 3 && await sequential.locator('#levelSelectBox').isVisible(), 'unmodified release reload preserves all three unlocked levels');
+  await sequential.locator('.level-pick').nth(2).click();
+  check(!await sequential.locator('#overlay').evaluate(element => element.classList.contains('open')), 'persisted unlock permits release level selection');
+  await sequential.evaluate(() => localStorage.setItem('karambe-water-run-best-times', '{broken'));
+  await sequential.reload();
+  check(await sequential.locator('.level-pick').count() === 3, 'corrupt best-time data cannot revoke the independent permanent unlock');
 
   const single = await session();
   await single.goto(base + '/instrumented.html');
-  await single.evaluate(() => CR.game.startLevel(3));
-  await threeCans(single);
-  check(await single.evaluate(() => CR.game.state === 'singleComplete' && localStorage.getItem('karambe-water-run-full-clear') === null), 'single-level completion leaves selector ungated');
+  check(await single.evaluate(() => CR.game.startLevel(3) === false && CR.game.state === 'ready'), 'fresh release cannot bypass progression through the game API');
 
   const dev = await session({ manual: false });
   await dev.goto(base + '/?dev=1');
+  check(await dev.locator('.level-pick').count() === 3 && await dev.locator('#levelSelectBox').isVisible(), 'trusted local development mode exposes Level Select');
   await dev.locator('#primaryBtn').click();
   for (let level = 1; level <= 3; level++) {
     await dev.evaluate(n => CR.game.startLevel(n), level);
@@ -129,7 +136,7 @@ try {
     check((await dev.locator('#gameStatus').textContent())?.includes(level === 3 ? 'WATER RUN COMPLETE' : `LEVEL ${level} COMPLETE`), `live status announces completion ${level}`);
     if (level < 3) await dev.locator('#primaryBtn').click();
   }
-  check(await dev.evaluate(() => ['karambe-water-run-full-clear', 'karambe-water-run-best-times', 'karambe-water-run-best-total'].every(key => localStorage.getItem(key) === null)), 'dev full runs never write legacy gate or bests');
+  check(await dev.evaluate(() => ['karambe-water-run-full-clear', 'karambe-water-run-best-times', 'karambe-water-run-best-total'].every(key => localStorage.getItem(key) === null)), 'development bypass never writes release unlock or bests');
   await dev.locator('#soundBtn').click();
   check(await dev.evaluate(() => !CR.game.sound.enabled && CR.game.sound.voices.size === 0), 'mute stops active audio voices');
 

@@ -127,22 +127,13 @@ try {
   for (const [width, height] of viewports) {
     await page.setViewportSize({ width, height });
     await page.goto(target);
-    assert.equal(await page.locator('.level-pick').count(), 3);
-    for (const button of await page.locator('.level-pick').all()) {
-      const rect = await button.boundingBox();
-      assert.ok(rect.y >= 0 && rect.y + rect.height <= height && rect.x >= 0 && rect.x + rect.width <= width);
-    }
+    assert.equal(await page.locator('.level-pick').count(), 0);
+    assert.equal(await page.locator('#levelSelectBox').isVisible(), false);
     assert.ok(await page.locator('#downloadBtn').isVisible() && await page.locator('#installBtn').isVisible());
     const installRect = await page.locator('#installBtn').boundingBox();
     assert.ok(installRect.y + installRect.height <= height);
-    checks.push(`selector and download visible ${width}x${height}`);
-    for (let index = 0; index < 3; index++) {
-      await page.locator('.level-pick').nth(index).tap();
-      assert.ok(!await page.locator('#overlay').evaluate(element => element.classList.contains('open')));
-      await page.locator('#menuBtn').tap();
-    }
-    checks.push(`touch enters all three levels ${width}x${height}`);
-    await page.locator('.level-pick').first().tap();
+    checks.push(`fresh release locks selector and shows download ${width}x${height}`);
+    await page.locator('#primaryBtn').tap();
     await exerciseControls(`${width}x${height}`);
   }
 
@@ -174,12 +165,12 @@ try {
   assert.ok(!await page.locator('#downloadBtn').isVisible());
   await page.locator('.level-pick').first().tap();
   await exerciseControls('downloaded file');
-  checks.push('downloaded exact artifact boots offline and starts all levels');
+  checks.push('downloaded exact artifact boots offline; development bypass starts all levels');
 
   await page.goto(target);
   await page.setViewportSize({ width: 320, height: 568 });
   fs.mkdirSync('test-results/phone-access', { recursive: true });
-  await page.screenshot({ path: 'test-results/phone-access/selector.png' });
+  await page.screenshot({ path: 'test-results/phone-access/locked-start.png' });
   assert.deepEqual(errors, []);
   assert.deepEqual(requests, []);
   const proof = { pass: true, live, url: base, device: devices['Pixel 5'].userAgent, checks, errors, unexpectedRequests: requests };

@@ -67,7 +67,7 @@ export class Game {
         { x1: 35, y1: 652, x2: 385, y2: 692, downhill: 1 },
         { x1: 35, y1: 792, x2: 420, y2: 747, downhill: -1 }
       ];
-      ({ bestTimes: this.bestTimes, bestTotal: this.bestTotal } = this.records.load());
+      ({ bestTimes: this.bestTimes, bestTotal: this.bestTotal, fullRunUnlocked: this.fullRunUnlocked } = this.records.load());
       this.runMode = 'full';
       this.motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
       this.reducedMotion = this.motionPreference.matches;
@@ -181,7 +181,12 @@ export class Game {
       this.sound.unlock();
     }
 
+    canSelectLevels() {
+      return DEV_ACCESS || this.fullRunUnlocked;
+    }
+
     startLevel(levelNumber) {
+      if (!this.canSelectLevels()) return false;
       const selected = clamp(Math.round(levelNumber), 1, LEVELS.length);
       this.runMode = 'single';
       this.level = selected;
@@ -193,6 +198,7 @@ export class Game {
       this.state = 'playing';
       this.last = performance.now();
       this.sound.unlock();
+      return true;
     }
 
     advanceLevel() {
@@ -268,6 +274,11 @@ export class Game {
         if (!this.bestTotal || this.totalTime < this.bestTotal) {
           this.bestTotal = this.totalTime;
           this.records.saveBestTotal(this.bestTotal);
+        }
+        const completedSequentialRun = LEVELS.every((level, index) => this.levelResults[index]?.level === level.number);
+        if (completedSequentialRun && !this.fullRunUnlocked) {
+          this.fullRunUnlocked = true;
+          this.records.saveFullRunUnlocked();
         }
         this.showOverlay('over');
         this.onStatus('WATER RUN COMPLETE');
