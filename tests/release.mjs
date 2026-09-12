@@ -48,11 +48,15 @@ try {
   check(await normal.locator('.level-pick').count() === 0 && !await normal.locator('#levelSelectBox').isVisible(), 'first-ever release requires the full sequential run');
   check((await normal.locator('#overlaySubtitle').textContent())?.includes('unlock Level Select'), 'fresh release explains the unlock rule');
   check(await normal.locator('#downloadBtn').isVisible() && await normal.locator('#installBtn').isVisible(), 'start menu exposes offline download and home-screen help');
+  check(await normal.locator('#volumeSlider').isVisible() && await normal.locator('#volumeSlider').inputValue() === '100', 'start menu exposes full-volume adjustment');
   check(await normal.evaluate(() => window.__audioCreated === 0), 'no AudioContext before gesture');
   await normal.locator('#soundBtn').click();
   check(await normal.locator('#soundBtn').textContent() === 'SOUND: OFF', 'sound toggle disables');
+  await normal.locator('#volumeSlider').fill('40');
+  check(await normal.locator('#volumeValue').textContent() === '40%' && await normal.evaluate(() => localStorage.getItem('karambe-audio-volume') === '0.40'), 'volume adjustment updates and persists while muted');
   await normal.reload();
   check(await normal.locator('#soundBtn').textContent() === 'SOUND: OFF', 'mute preference persists');
+  check(await normal.locator('#volumeSlider').inputValue() === '40' && await normal.locator('#volumeValue').textContent() === '40%', 'volume preference persists');
   check(await normal.evaluate(() => window.__audioCreated === 0), 'muted reload does not initialize audio');
   await normal.locator('#primaryBtn').click();
   check(await normal.locator('#overlay').evaluate(el => !el.classList.contains('open')), 'normal menu starts playable release');
@@ -85,7 +89,7 @@ try {
     check(await sequential.evaluate(() => CR.game.canSplits.length === 3 && CR.game.levelCans === 3), `Level ${level} records three deliveries/splits`);
     if (level < 3) {
       check(await sequential.evaluate(() => localStorage.getItem('karambe-water-run-full-clear') === null && !CR.game.fullRunUnlocked), `Level ${level} keeps Level Select locked`);
-      await sequential.locator('#soundBtn').focus();
+      await sequential.locator('#volumeSlider').focus();
       await sequential.keyboard.press('Tab');
       check(await sequential.evaluate(() => document.activeElement?.id === 'primaryBtn'), `Level ${level} dialog focus trap skips hidden Level Select descendants`);
       await sequential.locator('#primaryBtn').click();

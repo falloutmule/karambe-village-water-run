@@ -12,6 +12,8 @@ export function createGameUI(game) {
   const primary = $('primaryBtn');
   const secondary = $('secondaryBtn');
   const soundBtn = $('soundBtn');
+  const volumeSlider = $('volumeSlider');
+  const volumeValue = $('volumeValue');
   const downloadBtn = $('downloadBtn');
   const installBtn = $('installBtn');
   const offlineStatus = $('offlineStatus');
@@ -20,6 +22,13 @@ export function createGameUI(game) {
   const gameStatus = $('gameStatus');
   let primaryAction = () => {}, secondaryAction = () => {};
   let restoreFocus = null;
+  function renderSoundSettings() {
+    const percent = Math.round(game.sound.volume * 100);
+    soundBtn.textContent = `SOUND: ${game.sound.enabled ? 'ON' : 'OFF'}`;
+    volumeSlider.value = String(percent);
+    volumeSlider.setAttribute('aria-valuetext', `${percent} percent`);
+    volumeValue.textContent = `${percent}%`;
+  }
   primary.addEventListener('click', () => { game.sound.unlock(); game.sound.menu(); primaryAction(); });
   secondary.addEventListener('click', () => { game.sound.unlock(); game.sound.menu(); secondaryAction(); });
 
@@ -151,7 +160,7 @@ export function createGameUI(game) {
       secondary.textContent = 'HOW TO PLAY';
       secondaryAction = () => showOverlay('start');
     }
-    soundBtn.textContent = `SOUND: ${game.sound.enabled ? 'ON' : 'OFF'}`;
+    renderSoundSettings();
     requestAnimationFrame(() => primary.focus({ preventScroll: true }));
   }
 
@@ -166,7 +175,7 @@ export function createGameUI(game) {
 
   overlay.addEventListener('keydown', event => {
     if (event.key !== 'Tab') return;
-    const focusable = [...overlay.querySelectorAll('button, a[href]')].filter(element => !element.disabled && !element.closest('.hidden') && element.offsetParent !== null);
+    const focusable = [...overlay.querySelectorAll('button, input, a[href]')].filter(element => !element.disabled && !element.closest('.hidden') && element.offsetParent !== null);
     if (!focusable.length) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
@@ -177,7 +186,16 @@ export function createGameUI(game) {
   soundBtn.addEventListener('click', () => {
     game.sound.setEnabled(!game.sound.enabled);
     if (game.sound.enabled) game.sound.unlock();
-    soundBtn.textContent = `SOUND: ${game.sound.enabled ? 'ON' : 'OFF'}`;
+    renderSoundSettings();
+  });
+  volumeSlider.addEventListener('input', () => {
+    game.sound.setVolume(Number(volumeSlider.value) / 100);
+    renderSoundSettings();
+  });
+  volumeSlider.addEventListener('change', () => {
+    if (!game.sound.enabled) return;
+    game.sound.unlock();
+    game.sound.controlPress();
   });
 
   installBtn.addEventListener('click', () => {

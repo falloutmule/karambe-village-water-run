@@ -297,6 +297,24 @@
   .offline-status { margin: 8px 0 0; color: #bfe1c7; font-size: 12px; font-weight: 800; }
   .action.secondary { background: linear-gradient(#4a5150, #282e2d); box-shadow: 0 4px 0 #111; }
   .action.tertiary { background: transparent; box-shadow: none; border-color: rgba(255,255,255,.16); color: #dbe7d7; }
+  .sound-adjust {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) 46px;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    margin-top: 6px;
+    padding: 4px 10px;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 13px;
+    background: rgba(0,0,0,.15);
+    color: #dbe7d7;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .055em;
+  }
+  #volumeSlider { width: 100%; height: 34px; margin: 0; accent-color: #ffd94e; touch-action: pan-x; }
+  #volumeValue { color: #ffd94e; text-align: right; font-variant-numeric: tabular-nums; }
   .level-select {
     margin: 12px 0 4px;
     padding: 10px;
@@ -358,6 +376,7 @@
     .level-select-title { margin-bottom: 5px; }
     .level-pick { min-height: 50px; padding: 4px 3px; }
     .action { min-height: 43px; margin-top: 5px; font-size: 15px; }
+    .sound-adjust { min-height: 42px; margin-top: 4px; }
     .offline-status { margin-top: 5px; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -399,6 +418,7 @@
     <button id="primaryBtn" class="action">START WATER RUN</button>
     <button id="secondaryBtn" class="action secondary hidden">RESTART ROUND</button>
     <button id="soundBtn" class="action tertiary">SOUND: ON</button>
+    <label class="sound-adjust" for="volumeSlider"><span>VOLUME</span><input id="volumeSlider" type="range" min="10" max="100" step="10" value="100" aria-label="Game volume"><output id="volumeValue" for="volumeSlider">100%</output></label>
     <a id="downloadBtn" class="action secondary" href="index.html" download="Karambe-Village-Water-Run.html">DOWNLOAD OFFLINE GAME</a>
     <button id="installBtn" class="action tertiary">ADD TO HOME SCREEN</button>
     <div id="offlineStatus" class="offline-status hidden">OFFLINE COPY — NO CONNECTION NEEDED</div>

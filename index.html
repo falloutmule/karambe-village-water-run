@@ -297,6 +297,24 @@
   .offline-status { margin: 8px 0 0; color: #bfe1c7; font-size: 12px; font-weight: 800; }
   .action.secondary { background: linear-gradient(#4a5150, #282e2d); box-shadow: 0 4px 0 #111; }
   .action.tertiary { background: transparent; box-shadow: none; border-color: rgba(255,255,255,.16); color: #dbe7d7; }
+  .sound-adjust {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) 46px;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    margin-top: 6px;
+    padding: 4px 10px;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 13px;
+    background: rgba(0,0,0,.15);
+    color: #dbe7d7;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .055em;
+  }
+  #volumeSlider { width: 100%; height: 34px; margin: 0; accent-color: #ffd94e; touch-action: pan-x; }
+  #volumeValue { color: #ffd94e; text-align: right; font-variant-numeric: tabular-nums; }
   .level-select {
     margin: 12px 0 4px;
     padding: 10px;
@@ -358,6 +376,7 @@
     .level-select-title { margin-bottom: 5px; }
     .level-pick { min-height: 50px; padding: 4px 3px; }
     .action { min-height: 43px; margin-top: 5px; font-size: 15px; }
+    .sound-adjust { min-height: 42px; margin-top: 4px; }
     .offline-status { margin-top: 5px; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -399,6 +418,7 @@
     <button id="primaryBtn" class="action">START WATER RUN</button>
     <button id="secondaryBtn" class="action secondary hidden">RESTART ROUND</button>
     <button id="soundBtn" class="action tertiary">SOUND: ON</button>
+    <label class="sound-adjust" for="volumeSlider"><span>VOLUME</span><input id="volumeSlider" type="range" min="10" max="100" step="10" value="100" aria-label="Game volume"><output id="volumeValue" for="volumeSlider">100%</output></label>
     <a id="downloadBtn" class="action secondary" href="index.html" download="Karambe-Village-Water-Run.html">DOWNLOAD OFFLINE GAME</a>
     <button id="installBtn" class="action tertiary">ADD TO HOME SCREEN</button>
     <div id="offlineStatus" class="offline-status hidden">OFFLINE COPY — NO CONNECTION NEEDED</div>
@@ -1587,8 +1607,11 @@
       this.sfxBus = null;
       this.noiseBuffer = null;
       this.enabled = true;
+      this.volume = 1;
       try {
         this.enabled = localStorage.getItem("karambe-audio-enabled") !== "0";
+        const storedVolume = Number.parseFloat(localStorage.getItem("karambe-audio-volume"));
+        if (Number.isFinite(storedVolume)) this.volume = Math.min(1, Math.max(0.1, storedVolume));
       } catch {
       }
       this.voices = /* @__PURE__ */ new Set();
@@ -1597,7 +1620,7 @@
       this.nextBeat = 0;
       this.beat = 0;
       this.cooldowns = /* @__PURE__ */ new Map();
-      this.diagnostics = { unlocks: 0, scheduled: 0, musicNotes: 0, musicNoise: 0, sfxVoices: 0, controlCues: 0, steps: 0, activeVoices: 0, playing: false, enabled: this.enabled, level: 1, contextState: "unavailable", lastUnlockError: "" };
+      this.diagnostics = { unlocks: 0, scheduled: 0, musicNotes: 0, musicNoise: 0, sfxVoices: 0, controlCues: 0, steps: 0, activeVoices: 0, playing: false, enabled: this.enabled, volume: this.volume, level: 1, contextState: "unavailable", lastUnlockError: "" };
       document.addEventListener("visibilitychange", () => {
         if (document.hidden) {
           this.stopAll();
@@ -1618,7 +1641,7 @@
           this.master = this.ctx.createGain();
           this.musicBus = this.ctx.createGain();
           this.sfxBus = this.ctx.createGain();
-          this.master.gain.value = 0.68;
+          this.master.gain.value = this.enabled ? 0.68 * this.volume : 0;
           this.musicBus.gain.value = 0.72;
           this.sfxBus.gain.value = 1;
           this.musicBus.connect(this.master);
@@ -1651,11 +1674,25 @@
       }
       if (this.master) {
         this.master.gain.cancelScheduledValues(this.ctx.currentTime);
-        this.master.gain.value = this.enabled ? 0.68 : 0;
-        this.master.gain.setValueAtTime(this.enabled ? 0.68 : 0, this.ctx.currentTime);
+        const gain = this.enabled ? 0.68 * this.volume : 0;
+        this.master.gain.value = gain;
+        this.master.gain.setValueAtTime(gain, this.ctx.currentTime);
       }
       if (!this.enabled) this.stopAll();
       this.nextBeat = 0;
+    }
+    setVolume(value) {
+      this.volume = Math.min(1, Math.max(0.1, Number(value) || 1));
+      this.diagnostics.volume = this.volume;
+      try {
+        localStorage.setItem("karambe-audio-volume", this.volume.toFixed(2));
+      } catch {
+      }
+      if (this.master && this.ctx) {
+        const gain = this.enabled ? 0.68 * this.volume : 0;
+        this.master.gain.cancelScheduledValues(this.ctx.currentTime);
+        this.master.gain.setValueAtTime(gain, this.ctx.currentTime);
+      }
     }
     stopAll() {
       for (const voice of [...this.voices]) {
@@ -1860,7 +1897,7 @@
   };
 
   // src/game.js
-  var BUILD_ID = "karambe-clicky2";
+  var BUILD_ID = "karambe-volume1";
   var SAVE_VERSION = 1;
   var WORLD_W = 480;
   var WORLD_H = 860;
@@ -3784,6 +3821,8 @@
     const primary = $("primaryBtn");
     const secondary = $("secondaryBtn");
     const soundBtn = $("soundBtn");
+    const volumeSlider = $("volumeSlider");
+    const volumeValue = $("volumeValue");
     const downloadBtn = $("downloadBtn");
     const installBtn = $("installBtn");
     const offlineStatus = $("offlineStatus");
@@ -3794,6 +3833,13 @@
     }, secondaryAction = () => {
     };
     let restoreFocus = null;
+    function renderSoundSettings() {
+      const percent = Math.round(game2.sound.volume * 100);
+      soundBtn.textContent = `SOUND: ${game2.sound.enabled ? "ON" : "OFF"}`;
+      volumeSlider.value = String(percent);
+      volumeSlider.setAttribute("aria-valuetext", `${percent} percent`);
+      volumeValue.textContent = `${percent}%`;
+    }
     primary.addEventListener("click", () => {
       game2.sound.unlock();
       game2.sound.menu();
@@ -3952,7 +3998,7 @@
         secondary.textContent = "HOW TO PLAY";
         secondaryAction = () => showOverlay("start");
       }
-      soundBtn.textContent = `SOUND: ${game2.sound.enabled ? "ON" : "OFF"}`;
+      renderSoundSettings();
       requestAnimationFrame(() => primary.focus({ preventScroll: true }));
     }
     function closeOverlay() {
@@ -3965,7 +4011,7 @@
     }
     overlay.addEventListener("keydown", (event) => {
       if (event.key !== "Tab") return;
-      const focusable = [...overlay.querySelectorAll("button, a[href]")].filter((element) => !element.disabled && !element.closest(".hidden") && element.offsetParent !== null);
+      const focusable = [...overlay.querySelectorAll("button, input, a[href]")].filter((element) => !element.disabled && !element.closest(".hidden") && element.offsetParent !== null);
       if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -3980,7 +4026,16 @@
     soundBtn.addEventListener("click", () => {
       game2.sound.setEnabled(!game2.sound.enabled);
       if (game2.sound.enabled) game2.sound.unlock();
-      soundBtn.textContent = `SOUND: ${game2.sound.enabled ? "ON" : "OFF"}`;
+      renderSoundSettings();
+    });
+    volumeSlider.addEventListener("input", () => {
+      game2.sound.setVolume(Number(volumeSlider.value) / 100);
+      renderSoundSettings();
+    });
+    volumeSlider.addEventListener("change", () => {
+      if (!game2.sound.enabled) return;
+      game2.sound.unlock();
+      game2.sound.controlPress();
     });
     installBtn.addEventListener("click", () => {
       subtitle.textContent = "Chrome menu ⋮ → Add to Home screen. Download Offline Game below is the no-connection copy.";

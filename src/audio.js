@@ -10,14 +10,19 @@
       this.sfxBus = null;
       this.noiseBuffer = null;
       this.enabled = true;
-      try { this.enabled = localStorage.getItem('karambe-audio-enabled') !== '0'; } catch {}
+      this.volume = 1;
+      try {
+        this.enabled = localStorage.getItem('karambe-audio-enabled') !== '0';
+        const storedVolume = Number.parseFloat(localStorage.getItem('karambe-audio-volume'));
+        if (Number.isFinite(storedVolume)) this.volume = Math.min(1, Math.max(.1, storedVolume));
+      } catch {}
       this.voices = new Set();
       this.playing = false;
       this.level = 1;
       this.nextBeat = 0;
       this.beat = 0;
       this.cooldowns = new Map();
-      this.diagnostics = { unlocks: 0, scheduled: 0, musicNotes: 0, musicNoise: 0, sfxVoices: 0, controlCues: 0, steps: 0, activeVoices: 0, playing: false, enabled: this.enabled, level: 1, contextState: 'unavailable', lastUnlockError: '' };
+      this.diagnostics = { unlocks: 0, scheduled: 0, musicNotes: 0, musicNoise: 0, sfxVoices: 0, controlCues: 0, steps: 0, activeVoices: 0, playing: false, enabled: this.enabled, volume: this.volume, level: 1, contextState: 'unavailable', lastUnlockError: '' };
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) { this.stopAll(); this.playing = false; this.diagnostics.playing = false; this.nextBeat = 0; }
       });
@@ -33,7 +38,7 @@
           this.master = this.ctx.createGain();
           this.musicBus = this.ctx.createGain();
           this.sfxBus = this.ctx.createGain();
-          this.master.gain.value = .68;
+          this.master.gain.value = this.enabled ? .68 * this.volume : 0;
           this.musicBus.gain.value = .72;
           this.sfxBus.gain.value = 1;
           this.musicBus.connect(this.master);
@@ -59,11 +64,22 @@
       try { localStorage.setItem('karambe-audio-enabled', this.enabled ? '1' : '0'); } catch {}
       if (this.master) {
         this.master.gain.cancelScheduledValues(this.ctx.currentTime);
-        this.master.gain.value = this.enabled ? .68 : 0;
-        this.master.gain.setValueAtTime(this.enabled ? .68 : 0, this.ctx.currentTime);
+        const gain = this.enabled ? .68 * this.volume : 0;
+        this.master.gain.value = gain;
+        this.master.gain.setValueAtTime(gain, this.ctx.currentTime);
       }
       if (!this.enabled) this.stopAll();
       this.nextBeat = 0;
+    }
+    setVolume(value) {
+      this.volume = Math.min(1, Math.max(.1, Number(value) || 1));
+      this.diagnostics.volume = this.volume;
+      try { localStorage.setItem('karambe-audio-volume', this.volume.toFixed(2)); } catch {}
+      if (this.master && this.ctx) {
+        const gain = this.enabled ? .68 * this.volume : 0;
+        this.master.gain.cancelScheduledValues(this.ctx.currentTime);
+        this.master.gain.setValueAtTime(gain, this.ctx.currentTime);
+      }
     }
     stopAll() {
       for (const voice of [...this.voices]) {
