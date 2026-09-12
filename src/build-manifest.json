@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "buildId": "karambe-clicky1",
+  "buildId": "karambe-clicky2",
   "artifact": "index.html",
   "shell": "src/game.html",
   "entry": "src/main.js",

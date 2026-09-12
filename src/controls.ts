@@ -6,7 +6,7 @@ interface GameControlsTarget {
   input: { left: boolean; right: boolean };
   player?: { jumpBuffer: number };
   canPress?: { time: number } | null;
-  sound: { unlock(): void };
+  sound: { unlock(): void; controlPress(): void };
   cancelCanAction(): void;
   beginCanAction(): void;
   endCanAction(commit: boolean): void;
@@ -129,6 +129,7 @@ export function createGameControls(game: GameControlsTarget, options: { clicky?:
       if (previous.has(id) || clearing) continue;
       game.sound.unlock();
       if (!playing()) continue;
+      if (options.clicky) game.sound.controlPress();
       const source = `pointer:${id}`;
       if (control === 'can') beginCan(source);
       if (control === 'jump') actions.push({ kind: 'jump', source });

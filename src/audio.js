@@ -17,7 +17,7 @@
       this.nextBeat = 0;
       this.beat = 0;
       this.cooldowns = new Map();
-      this.diagnostics = { unlocks: 0, scheduled: 0, musicNotes: 0, musicNoise: 0, sfxVoices: 0, steps: 0, activeVoices: 0, playing: false, enabled: this.enabled, level: 1, contextState: 'unavailable', lastUnlockError: '' };
+      this.diagnostics = { unlocks: 0, scheduled: 0, musicNotes: 0, musicNoise: 0, sfxVoices: 0, controlCues: 0, steps: 0, activeVoices: 0, playing: false, enabled: this.enabled, level: 1, contextState: 'unavailable', lastUnlockError: '' };
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) { this.stopAll(); this.playing = false; this.diagnostics.playing = false; this.nextBeat = 0; }
       });
@@ -160,6 +160,18 @@
       }
     }
     jump() { this.tone(235, .11, 'square', .032, 420); }
+    // Imaginarium plastic-click cue: a short high-to-low sine snap with a quiet noise edge.
+    controlPress(retryAfterResume = true) {
+      if (!this.enabled || document.hidden || !this.ctx) return;
+      if (retryAfterResume && this.ctx.state === 'suspended') {
+        this.ctx.resume().then(() => this.controlPress(false)).catch(() => {});
+        return;
+      }
+      if (!this.available()) return;
+      const tone = this.tone(920, .065, 'sine', .032, 270);
+      const noise = this.noise(.045, .007);
+      if (tone || noise) this.diagnostics.controlCues++;
+    }
     noJump() { this.limited('warning', .35, () => this.tone(115, .12, 'triangle', .05, 75)); }
     pickup() { this.tone(360, .07, 'square', .028, 510); }
     drop() { this.tone(145, .08, 'triangle', .045, 95); }

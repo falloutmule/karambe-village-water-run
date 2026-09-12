@@ -81,11 +81,17 @@ try {
     emitPoint('pointerup', 'left', 40, clickyBounds.left + clickyBounds.width / 2, clickyBounds.top + clickyBounds.height / 2);
     clean('clicky visual');
     reset();
+    const originalControlPress = game.sound.controlPress.bind(game.sound);
+    let controlPresses = 0;
+    game.sound.controlPress = () => { controlPresses++; };
     emit('pointerdown', 'left', 41); emit('pointerdown', 'can', 42);
+    check(controlPresses === 2, 'clicky cue fires exactly once for each new contact');
     const heldSequence = controls.read().mobile.sequence;
     emitCoalesced('left', 41, [[0, 0], [1, 0], [2, 0], [0, 0]]);
+    check(controlPresses === 2, 'held and coalesced moves do not retrigger clicky cue');
     check(controls.read().mobile.sequence === heldSequence, 'coalesced hold moves do not publish unchanged snapshots');
     controls.releaseAll('sequence-check');
+    game.sound.controlPress = originalControlPress;
     check(controls.read().mobile.sequence === heldSequence + 1, 'multitouch releaseAll publishes exactly one snapshot');
     clean('batched release');
 
@@ -258,6 +264,7 @@ try {
   assert.equal(mutedCounters.owners, 0, 'SOUND OFF control sequence releases ownership');
   const audibleCounters = await holdEachControl(true);
   assert.ok(audibleCounters.after.unlocks > audibleCounters.before.unlocks || audibleCounters.after.scheduled > audibleCounters.before.scheduled, 'SOUND ON records an unlock or scheduled voice');
+  assert.ok(audibleCounters.after.controlCues > audibleCounters.before.controlCues, 'SOUND ON schedules clicky control cues');
   assert.equal(audibleCounters.owners, 0, 'SOUND ON control sequence releases ownership');
 
   await realtimePage.evaluate(() => { CR.controls.releaseAll('realtime-multitouch'); CR.game.startLevel(1); CR.game.sound.setEnabled(true); });
