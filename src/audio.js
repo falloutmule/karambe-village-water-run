@@ -2,10 +2,12 @@
   const SCORE_ROOTS = [48, 53, 55, 50];
   const SCORE_LEAD = [12,null,19,16,null,14,12,null,9,null,12,14,16,null,19,21,19,null,16,14,null,12,9,null,7,9,null,12,14,null,12,9];
   const SCORE_REPLY = [null,7,null,9,12,null,9,null,null,4,null,7,9,null,7,null];
+  const MAX_MASTER_GAIN = 1.5;
   export class SoundBank {
     constructor() {
       this.ctx = null;
       this.master = null;
+      this.limiter = null;
       this.musicBus = null;
       this.sfxBus = null;
       this.noiseBuffer = null;
@@ -36,14 +38,21 @@
           if (!AC) return;
           this.ctx = new AC();
           this.master = this.ctx.createGain();
+          this.limiter = this.ctx.createDynamicsCompressor();
           this.musicBus = this.ctx.createGain();
           this.sfxBus = this.ctx.createGain();
-          this.master.gain.value = this.enabled ? .68 * this.volume : 0;
+          this.master.gain.value = this.enabled ? MAX_MASTER_GAIN * this.volume : 0;
+          this.limiter.threshold.value = -6;
+          this.limiter.knee.value = 0;
+          this.limiter.ratio.value = 20;
+          this.limiter.attack.value = .003;
+          this.limiter.release.value = .12;
           this.musicBus.gain.value = .72;
           this.sfxBus.gain.value = 1;
           this.musicBus.connect(this.master);
           this.sfxBus.connect(this.master);
-          this.master.connect(this.ctx.destination);
+          this.master.connect(this.limiter);
+          this.limiter.connect(this.ctx.destination);
           const size = this.ctx.sampleRate;
           this.noiseBuffer = this.ctx.createBuffer(1, size, this.ctx.sampleRate);
           const data = this.noiseBuffer.getChannelData(0);
@@ -64,7 +73,7 @@
       try { localStorage.setItem('karambe-audio-enabled', this.enabled ? '1' : '0'); } catch {}
       if (this.master) {
         this.master.gain.cancelScheduledValues(this.ctx.currentTime);
-        const gain = this.enabled ? .68 * this.volume : 0;
+        const gain = this.enabled ? MAX_MASTER_GAIN * this.volume : 0;
         this.master.gain.value = gain;
         this.master.gain.setValueAtTime(gain, this.ctx.currentTime);
       }
@@ -76,8 +85,9 @@
       this.diagnostics.volume = this.volume;
       try { localStorage.setItem('karambe-audio-volume', this.volume.toFixed(2)); } catch {}
       if (this.master && this.ctx) {
-        const gain = this.enabled ? .68 * this.volume : 0;
+        const gain = this.enabled ? MAX_MASTER_GAIN * this.volume : 0;
         this.master.gain.cancelScheduledValues(this.ctx.currentTime);
+        this.master.gain.value = gain;
         this.master.gain.setValueAtTime(gain, this.ctx.currentTime);
       }
     }

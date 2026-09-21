@@ -123,6 +123,23 @@ try {
   check((await dev.locator('#overlayTitle').textContent())?.startsWith('DEV MENU') && (await dev.locator('.level-select-title').textContent()) === 'DEV MENU — LEVEL ACCESS', 'development level access is clearly labeled as the Dev Menu');
   check((await dev.locator('#overlaySubtitle').textContent())?.includes('not saved'), 'Dev Menu explains its isolated persistence');
   await dev.locator('#primaryBtn').click();
+  check(await dev.evaluate(() => {
+    const sound = CR.game.sound;
+    sound.setVolume(1);
+    return sound.master.gain.value === 1.5 && sound.limiter.threshold.value === -6 && sound.limiter.ratio.value === 20;
+  }), '100% volume uses the louder limited output path');
+  const volumePath = await dev.evaluate(() => {
+    const sound = CR.game.sound;
+    sound.setVolume(.4);
+    const reduced = sound.master.gain.value;
+    sound.setEnabled(false);
+    const muted = sound.master.gain.value;
+    sound.setEnabled(true);
+    const restored = sound.master.gain.value;
+    sound.setVolume(1);
+    return { reduced, muted, restored };
+  });
+  check(Math.abs(volumePath.reduced - .6) < .0001 && volumePath.muted === 0 && Math.abs(volumePath.restored - .6) < .0001, 'volume scales the louder output and mute restores the selected level');
   for (let level = 1; level <= 3; level++) {
     await dev.evaluate(n => CR.game.startLevel(n), level);
     const before = await dev.evaluate(() => CR.game.sound.diagnostics.musicNotes);
