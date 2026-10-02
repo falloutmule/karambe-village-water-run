@@ -1,16 +1,19 @@
-  // Original West African pop chiptune-inspired score and effects: no recordings or external assets.
-  const SCORE_ROOTS = [48, 53, 55, 50];
-  const SCORE_LEAD = [12,null,19,16,null,14,12,null,9,null,12,14,16,null,19,21,19,null,16,14,null,12,9,null,7,9,null,12,14,null,12,9];
-  const SCORE_REPLY = [null,7,null,9,12,null,9,null,null,4,null,7,9,null,7,null];
-  const MAX_MASTER_GAIN = 1.5;
+  import soundtrackUrl from './assets/karambe-village.mp3';
+  // Full user-supplied soundtrack, embedded at build time. Effects remain synthesized locally.
+  const MAX_MASTER_GAIN = 6;
   export class SoundBank {
     constructor() {
       this.ctx = null;
       this.master = null;
       this.limiter = null;
+      this.peakGuard = null;
       this.musicBus = null;
       this.sfxBus = null;
       this.noiseBuffer = null;
+      this.soundtrack = document.getElementById('soundtrack');
+      this.soundtrackSource = null;
+      this.soundtrackPending = false;
+      this.soundtrackBlocked = false;
       this.enabled = true;
       this.volume = 1;
       try {
@@ -21,12 +24,20 @@
       this.voices = new Set();
       this.playing = false;
       this.level = 1;
-      this.nextBeat = 0;
-      this.beat = 0;
       this.cooldowns = new Map();
-      this.diagnostics = { unlocks: 0, scheduled: 0, musicNotes: 0, musicNoise: 0, sfxVoices: 0, controlCues: 0, steps: 0, activeVoices: 0, playing: false, enabled: this.enabled, volume: this.volume, level: 1, contextState: 'unavailable', lastUnlockError: '' };
+      this.diagnostics = { unlocks: 0, scheduled: 0, sfxVoices: 0, controlCues: 0, activeVoices: 0, playing: false, enabled: this.enabled, volume: this.volume, level: 1, contextState: 'unavailable', lastUnlockError: '', soundtrackStarts: 0, soundtrackPlaying: false, soundtrackTime: 0, soundtrackDuration: 0, soundtrackError: '' };
+      this.soundtrack.addEventListener('playing', () => {
+        this.diagnostics.soundtrackStarts++;
+        this.diagnostics.soundtrackPlaying = true;
+      });
+      this.soundtrack.addEventListener('pause', () => { this.diagnostics.soundtrackPlaying = false; });
+      this.soundtrack.addEventListener('loadedmetadata', () => { this.diagnostics.soundtrackDuration = this.soundtrack.duration; });
+      this.soundtrack.addEventListener('error', () => {
+        this.soundtrackBlocked = true;
+        this.diagnostics.soundtrackError = `Media error ${this.soundtrack.error?.code || 'unknown'}`;
+      });
       document.addEventListener('visibilitychange', () => {
-        if (document.hidden) { this.stopAll(); this.playing = false; this.diagnostics.playing = false; this.nextBeat = 0; }
+        if (document.hidden) { this.stopAll(); this.playing = false; this.diagnostics.playing = false; }
       });
     }
     // Call only from direct gesture handlers. Synthesis never opens audio.
@@ -39,20 +50,33 @@
           this.ctx = new AC();
           this.master = this.ctx.createGain();
           this.limiter = this.ctx.createDynamicsCompressor();
+          this.peakGuard = this.ctx.createWaveShaper();
           this.musicBus = this.ctx.createGain();
           this.sfxBus = this.ctx.createGain();
           this.master.gain.value = this.enabled ? MAX_MASTER_GAIN * this.volume : 0;
-          this.limiter.threshold.value = -6;
+          this.limiter.threshold.value = -1;
           this.limiter.knee.value = 0;
           this.limiter.ratio.value = 20;
           this.limiter.attack.value = .003;
           this.limiter.release.value = .12;
+          // Compressor attack can pass brief overshoots. A smooth knee caps the final signal at .95.
+          const peakCurve = new Float32Array(2049);
+          for (let i = 0; i < peakCurve.length; i++) {
+            const value = i * 2 / (peakCurve.length - 1) - 1;
+            const magnitude = Math.abs(value);
+            const knee = Math.max(0, (magnitude - .9) / .1);
+            peakCurve[i] = Math.sign(value) * (magnitude <= .9 ? magnitude : .9 + .1 * (knee - knee * knee / 2));
+          }
+          this.peakGuard.curve = peakCurve;
           this.musicBus.gain.value = .72;
           this.sfxBus.gain.value = 1;
           this.musicBus.connect(this.master);
           this.sfxBus.connect(this.master);
           this.master.connect(this.limiter);
-          this.limiter.connect(this.ctx.destination);
+          this.limiter.connect(this.peakGuard).connect(this.ctx.destination);
+          this.soundtrackSource = this.ctx.createMediaElementSource(this.soundtrack);
+          this.soundtrackSource.connect(this.musicBus);
+          this.soundtrack.src = soundtrackUrl;
           const size = this.ctx.sampleRate;
           this.noiseBuffer = this.ctx.createBuffer(1, size, this.ctx.sampleRate);
           const data = this.noiseBuffer.getChannelData(0);
@@ -63,6 +87,8 @@
         if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
         this.diagnostics.contextState = this.ctx.state;
         this.diagnostics.lastUnlockError = '';
+        this.soundtrackBlocked = false;
+        this.playSoundtrack();
       } catch (error) {
         this.diagnostics.lastUnlockError = error instanceof Error ? error.message : String(error);
       }
@@ -78,7 +104,6 @@
         this.master.gain.setValueAtTime(gain, this.ctx.currentTime);
       }
       if (!this.enabled) this.stopAll();
-      this.nextBeat = 0;
     }
     setVolume(value) {
       this.volume = Math.min(1, Math.max(.1, Number(value) || 1));
@@ -92,6 +117,8 @@
       }
     }
     stopAll() {
+      this.soundtrack.pause();
+      this.diagnostics.soundtrackPlaying = false;
       for (const voice of [...this.voices]) {
         try { voice.source.stop(); } catch {}
         voice.source.disconnect(); voice.amp.disconnect();
@@ -113,7 +140,7 @@
       source.start(at); source.stop(at + duration + .025);
       return true;
     }
-    tone(freq = 440, duration = .08, type = 'square', gain = .045, endFreq = null, delay = 0, music = false) {
+    tone(freq = 440, duration = .08, type = 'square', gain = .045, endFreq = null, delay = 0) {
       if (!this.available()) return false;
       const at = this.ctx.currentTime + Math.max(0, delay);
       duration = Math.max(.025, duration);
@@ -125,10 +152,10 @@
       amp.gain.setValueAtTime(.0001, at);
       amp.gain.exponentialRampToValueAtTime(Math.max(.0001, gain), at + .006);
       amp.gain.exponentialRampToValueAtTime(.0001, at + duration);
-      osc.connect(amp).connect(music ? this.musicBus : this.sfxBus);
-      return this.track(osc, amp, at, duration, music ? 'musicNotes' : 'sfxVoices');
+      osc.connect(amp).connect(this.sfxBus);
+      return this.track(osc, amp, at, duration, 'sfxVoices');
     }
-    noise(duration = .12, gain = .035, delay = 0, music = false) {
+    noise(duration = .12, gain = .035, delay = 0) {
       if (!this.available()) return false;
       const at = this.ctx.currentTime + Math.max(0, delay);
       const source = this.ctx.createBufferSource();
@@ -136,8 +163,8 @@
       source.buffer = this.noiseBuffer;
       amp.gain.setValueAtTime(Math.max(.0001, gain), at);
       amp.gain.exponentialRampToValueAtTime(.0001, at + Math.max(.025, duration));
-      source.connect(amp).connect(music ? this.musicBus : this.sfxBus);
-      return this.track(source, amp, at, duration, music ? 'musicNoise' : 'sfxVoices');
+      source.connect(amp).connect(this.sfxBus);
+      return this.track(source, amp, at, duration, 'sfxVoices');
     }
     duckMusic(amount = .42, duration = .18) {
       if (!this.musicBus || !this.ctx) return;
@@ -153,37 +180,39 @@
       if (now < (this.cooldowns.get(name) || 0)) return;
       this.cooldowns.set(name, now + interval); effect();
     }
+    startMusic(restart = false) {
+      if (restart) {
+        this.stopAll();
+        this.soundtrack.currentTime = 0;
+        this.diagnostics.soundtrackTime = 0;
+      }
+      this.playing = true;
+      this.diagnostics.playing = this.enabled && !document.hidden;
+      this.unlock();
+    }
+    playSoundtrack() {
+      if (!this.playing || !this.enabled || document.hidden || !this.ctx || this.soundtrackBlocked || this.soundtrackPending || !this.soundtrack.paused) return;
+      this.soundtrackPending = true;
+      this.soundtrack.play().then(() => {
+        this.diagnostics.soundtrackError = '';
+        if (!this.playing || !this.enabled || document.hidden) this.soundtrack.pause();
+      }).catch(error => {
+        // A pause/reset may abort an in-flight start. The next active frame can retry it.
+        if (error.name !== 'AbortError') {
+          this.soundtrackBlocked = true;
+          this.diagnostics.soundtrackError = error instanceof Error ? error.message : String(error);
+        }
+      }).finally(() => { this.soundtrackPending = false; });
+    }
     tick(dt, { playing = false, level = 1 } = {}) {
       const active = Boolean(playing && this.enabled && !document.hidden);
       const nextLevel = Math.max(1, Math.min(3, level || 1));
       if (this.playing && !active) this.stopAll();
-      if (nextLevel !== this.level) { this.beat = 0; this.nextBeat = 0; }
       this.level = nextLevel; this.playing = active;
       this.diagnostics.playing = active; this.diagnostics.level = this.level;
       this.diagnostics.contextState = this.ctx?.state || 'unavailable';
-      if (!active || !this.available()) { this.nextBeat = 0; return; }
-      const now = this.ctx.currentTime;
-      const spacing = 60 / [110, 118, 126][this.level - 1] / 4;
-      if (!this.nextBeat || this.nextBeat < now - .15) this.nextBeat = now + .015;
-      // Frame-driven 85 ms lookahead; never a timer or a catch-up storm.
-      for (let count = 0; count < 2 && this.nextBeat < now + .085; count++) {
-        const delay = Math.max(0, this.nextBeat - now);
-        const root = SCORE_ROOTS[Math.floor(this.beat / 16) % SCORE_ROOTS.length];
-        const lead = SCORE_LEAD[this.beat % SCORE_LEAD.length];
-        const reply = SCORE_REPLY[this.beat % SCORE_REPLY.length];
-        const hz = midi => 440 * Math.pow(2, (midi - 69) / 12);
-        if (lead !== null && (this.beat % 2 === 0 || this.level > 1)) {
-          this.tone(hz(root + lead), .105, this.level === 1 ? 'triangle' : 'square', .018, null, delay, true);
-        }
-        if (reply !== null && this.level >= 2 && this.beat % 2 === 1) {
-          this.tone(hz(root + 24 + reply), .065, 'square', .009, null, delay, true);
-        }
-        if (this.beat % 8 === 0 || this.beat % 8 === 5) this.tone(hz(root - 12), .19, 'triangle', .034, null, delay, true);
-        if (this.beat % 8 === 0 || this.beat % 8 === 6) this.tone(105, .07, 'sine', .027, 48, delay, true);
-        if (this.beat % 4 === 2 || this.beat % 8 === 7) this.noise(.028, .009, delay, true);
-        if (this.level === 3 && this.beat % 2 === 1) this.noise(.014, .0045, delay, true);
-        this.beat++; this.diagnostics.steps++; this.nextBeat += spacing;
-      }
+      this.diagnostics.soundtrackTime = this.soundtrack.currentTime;
+      if (active) this.playSoundtrack();
     }
     jump() { this.tone(235, .11, 'square', .032, 420); }
     // Imaginarium plastic-click cue: a short high-to-low sine snap with a quiet noise edge.

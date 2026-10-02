@@ -62,6 +62,15 @@ try {
   assert.ok(initialCheck.pass, 'initial live self-check passes');
 
   await page.locator('#primaryBtn').click();
+  await page.waitForFunction(() => {
+    const song = document.getElementById('soundtrack');
+    return song && !song.paused && song.currentTime > 0 && song.readyState >= 2;
+  });
+  const soundtrack = await page.evaluate(() => {
+    const song = document.getElementById('soundtrack');
+    return { embedded: song.currentSrc.startsWith('data:audio/mpeg;base64,'), duration: song.duration, loop: song.loop, error: song.error?.code ?? null };
+  });
+  assert.ok(soundtrack.embedded && soundtrack.loop && soundtrack.error === null && Math.abs(soundtrack.duration - 276.36) < .15, 'full embedded Karambe Village song plays live');
   await page.waitForTimeout(200);
   await page.evaluate(() => {
     window.__liveTouchDefaults = [];
@@ -88,6 +97,7 @@ try {
   assert.ok(selfcheck.pass, 'post-input live self-check passes');
   await page.screenshot({ path: `${proofDir}/game.png` });
   await page.locator('#menuBtn').click();
+  assert.equal(await page.locator('#soundtrack').evaluate(song => song.paused), true, 'live pause stops the soundtrack');
   assert.equal((await page.locator('#primaryBtn').textContent())?.trim(), 'RESUME');
   await page.goto(new URL('?dev=1', url).href, { waitUntil: 'networkidle' });
   assert.ok(await page.evaluate(() => CR.dev && !CR.game && !CR.controls), 'public Dev Menu does not expose mutable debug state');
@@ -109,6 +119,7 @@ try {
     liveMultitouchAndCancel: true,
     trustedTouchDefaultsCanceled: true,
     publicDevMenuIsolated: true,
+    soundtrack,
     errors,
     unexpectedRequests: unexpected,
     physicalPhone: 'not tested'

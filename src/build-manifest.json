@@ -1,10 +1,18 @@
 {
   "schemaVersion": 1,
-  "buildId": "karambe-volume2",
+  "buildId": "karambe-soundtrack2",
   "artifact": "index.html",
   "shell": "src/game.html",
   "entry": "src/main.js",
   "sfhsCommit": "391ed3afe75fa47794e7e1e9f3477e3ec53ecb12",
   "sfhsRuntime": "vendor/sfhs/mobile-controls (product-local neutral surface and contact-end extension)",
-  "runtimeExternalDependencies": []
+  "runtimeExternalDependencies": [],
+  "soundtrack": {
+    "path": "src/assets/karambe-village.mp3",
+    "title": "Karambe Village",
+    "artist": "falloutmule",
+    "sourceFilename": "Karambe Village (16,85).mp3",
+    "durationSeconds": 276.359979,
+    "sha256": "d2416a67ae1a73133500fef1ffde3a61d2bf67bbf53d3930a8ed524eee975da9"
+  }
 }

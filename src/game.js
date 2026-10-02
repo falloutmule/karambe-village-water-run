@@ -180,7 +180,7 @@ export class Game {
       this.reset();
       this.state = 'playing';
       this.last = performance.now();
-      this.sound.unlock();
+      this.sound.startMusic(true);
     }
 
     canSelectLevels() {
@@ -199,7 +199,7 @@ export class Game {
       this.resetLevel();
       this.state = 'playing';
       this.last = performance.now();
-      this.sound.unlock();
+      this.sound.startMusic(true);
       return true;
     }
 
@@ -209,7 +209,7 @@ export class Game {
       this.resetLevel();
       this.state = 'playing';
       this.last = performance.now();
-      this.sound.unlock();
+      this.sound.startMusic();
     }
 
     pause() {
@@ -229,7 +229,7 @@ export class Game {
         this.state = 'playing';
         this.last = performance.now();
         this.accum = 0;
-        this.sound.unlock();
+        this.sound.startMusic();
       }
     }
 

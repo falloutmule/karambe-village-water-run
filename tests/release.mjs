@@ -27,7 +27,7 @@ async function session({ manual = true } = {}) {
   contexts.push(context);
   const page = await context.newPage();
   page.on('pageerror', error => evidence.pageErrors.push(error.message));
-  page.on('request', request => { if (request.resourceType() !== 'document') evidence.unexpectedRequests.push(request.url()); });
+  page.on('request', request => { if (request.resourceType() !== 'document' && !request.url().startsWith('data:')) evidence.unexpectedRequests.push(request.url()); });
   if (manual) await page.addInitScript(() => { window.requestAnimationFrame = () => 0; });
   // Observer only: counts AudioContext construction without creating one.
   await page.addInitScript(() => {
@@ -126,7 +126,7 @@ try {
   check(await dev.evaluate(() => {
     const sound = CR.game.sound;
     sound.setVolume(1);
-    return sound.master.gain.value === 1.5 && sound.limiter.threshold.value === -6 && sound.limiter.ratio.value === 20;
+    return sound.master.gain.value === 6 && sound.limiter.threshold.value === -1 && sound.limiter.ratio.value === 20 && Boolean(sound.peakGuard.curve);
   }), '100% volume uses the louder limited output path');
   const volumePath = await dev.evaluate(() => {
     const sound = CR.game.sound;
@@ -139,13 +139,14 @@ try {
     sound.setVolume(1);
     return { reduced, muted, restored };
   });
-  check(Math.abs(volumePath.reduced - .6) < .0001 && volumePath.muted === 0 && Math.abs(volumePath.restored - .6) < .0001, 'volume scales the louder output and mute restores the selected level');
+  check(Math.abs(volumePath.reduced - 2.4) < .0001 && volumePath.muted === 0 && Math.abs(volumePath.restored - 2.4) < .0001, 'volume scales the louder output and mute restores the selected level');
   for (let level = 1; level <= 3; level++) {
     await dev.evaluate(n => CR.game.startLevel(n), level);
-    const before = await dev.evaluate(() => CR.game.sound.diagnostics.musicNotes);
+    await dev.waitForFunction(() => !document.getElementById('soundtrack').paused);
+    const before = await dev.evaluate(() => document.getElementById('soundtrack').currentTime);
     await dev.waitForTimeout(750);
     const data = await dev.evaluate(() => ({ ...CR.game.sound.diagnostics, contextState: CR.game.sound.ctx?.state }));
-    check(data.level === level && data.musicNotes > before && data.contextState === 'running', `original music advances in Level ${level} after gesture`);
+    check(data.level === level && data.soundtrackTime > before && data.soundtrackPlaying && data.contextState === 'running', `embedded song advances in Level ${level} after gesture`);
     evidence.music.push(data);
   }
   await dev.evaluate(() => {

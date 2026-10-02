@@ -17,3 +17,11 @@ Physical Android Chrome acceptance of the neutral touch surfaces, downloaded fil
 and revised speaker mix remains pending user testing. This card guards
 Hermes failure modes A–N and P–T; custom control editing (O) is out of scope.
 ZIP history and private phone references remain outside published repository.
+
+## Supplied soundtrack
+
+- [x] Identify the supplied full Karambe Village MP3 and preserve its exact bytes.
+- [x] Embed it in the standalone HTML; retain effects, volume, mute, and control feedback.
+- [x] Verify decoded playback, audio output, looping, pause/resume, level transitions, and offline download.
+- [x] Raise maximum output; measure the entire stereo song and concurrent effects without clipped samples.
+- [x] Add full-song playback and pause verification to the exact-artifact Pages deployment gate.

@@ -1,29 +1,65 @@
-# Original procedural audio
+# Soundtrack and effects
 
-`src/audio.js` synthesizes every sound locally with Web Audio. The melody, harmony, rhythmic pattern, and effects are newly authored for this game. No recordings, sampled music, external assets, or traditional/culturally authentic music claims are involved.
+The game plays the full user-supplied **Karambe Village** song by falloutmule.
+Canonical asset: `src/assets/karambe-village.mp3`, copied without transcoding from
+`Karambe Village (16,85).mp3`. The track lasts approximately 4 minutes 36 seconds.
+Its byte identity and duration are recorded in `src/build-manifest.json`.
 
-A four-root harmonic cycle supports an original call-and-response theme. The score
-uses syncopated percussion, interlocking chip-pluck figures and melodic triangle
-bass: L1 is sparse at 110 BPM, L2 adds the response at 118 BPM, and L3 uses the
-full rhythmic layer at 126 BPM. This is a broad stylistic influence, not a claim of
-traditional or culturally authentic music.
+The build embeds those exact MP3 bytes as a data URL in root `index.html`.
+Playback uses one HTML audio element routed through the existing Web Audio music
+bus, avoiding a full-song PCM allocation on phones. No external asset request is
+required. The offline download contains the song as well as the game.
 
-Music and effects run through separate internal buses. Major block, hit, retry and
-clear cues briefly duck the music. A reusable deterministic noise buffer avoids
-allocating a new AudioBuffer for every step or rock sound.
+## Playback
 
-## Integration
+- START FULL RUN, a new single-level run, and restart rewind the song to its intro.
+- The song loops when it reaches the end. Advancing to the next level continues
+  from the current position.
+- Opening the menu, completing a level, hiding the page, and pagehide pause the
+  song immediately. RESUME continues from the paused position.
+- SOUND OFF pauses music and cancels active effects. Turning sound back on and
+  resuming gameplay continues the song. Stored mute and volume preferences remain
+  under `karambe-audio-enabled` and `karambe-audio-volume`.
+- The menu's 10–100% volume slider controls the common output. Maximum gain is
+  6, followed by peak compression starting at −1 dB and a final smooth peak guard
+  capped at .95. This raises both music and
+  effects relative to the former 1.5 gain / −6 dB mix. Music remains on a separate bus so block,
+  hit, retry, and completion effects can duck it briefly.
+- Audio and the song source initialize after a gesture; page load and a muted
+  reload initialize neither. Playback failures fall back to silence and are
+  reported in diagnostics.
 
-- Call `unlock()` only inside direct user-gesture handlers. Neither synthesis nor `tick` creates or resumes an AudioContext.
-- Use `setEnabled(boolean)` for mute. It stores `karambe-audio-enabled`, controls master gain, and immediately cancels active/queued voices. After enabling from a click, call `unlock()`.
-- Call `tick(dt, { playing, level })` every animation frame, including menus. The first inactive tick stops voices. Hidden-document handling cancels immediately. No intervals or timeout callbacks are used.
-- Existing methods remain compatible. Added effects: step, land, retry, menu, rolling, collapse, crush, clear. Step/rolling use audio-clock rate limits.
-- Call `stopAll()` on immediate pause/reset if a frame may not run promptly. Play a final clear effect after music stops. Scheduled SFX notes cancel with music.
+Gameplay effects and the optional clicky-control cue remain locally synthesized.
+The former procedural music sequencer has been removed. Effects use a reusable
+deterministic noise buffer, never consume gameplay randomness, and have a
+48-voice limit with cleanup on completion and cancellation.
 
-The sequencer schedules at most two eighth-note steps per frame with an 85 ms lookahead. Delayed frames reset scheduling instead of replaying missed notes. Voices are bounded at 48 and disconnect when ended. Deterministic noise does not consume the gameplay random stream. Audio creation failures fall back to silence.
+## Integration and evidence
 
-`sound.diagnostics` exposes unlocks, scheduled, musicNotes, musicNoise, sfxVoices, steps, activeVoices, playing, enabled, level, contextState, and the last unlock error. Use these to verify initialization, music/effect progression, cancellation, and mute. Counters prove scheduling behavior; listening and physical phone checks remain separate.
+`SoundBank.startMusic(restart)` owns new-run versus continuation behavior.
+`tick(dt, { playing, level })` synchronizes playback with gameplay; `stopAll()`
+pauses the song and cancels effects. `unlock()` creates/resumes the context in
+gesture paths. No music timers are required.
 
-## Focused verification
+Diagnostics include `soundtrackStarts`, `soundtrackPlaying`, `soundtrackTime`,
+`soundtrackDuration`, and `soundtrackError`, alongside the existing effect and
+context counters. An advancing media clock proves playback timing; the focused
+soundtrack test also measures nonzero signal at the actual master output.
 
-Chrome headless verified that tone/noise/tick before unlock leave the AudioContext null; a button gesture creates one context; music schedules across all three levels; all added SFX schedule without exceptions; inactive tick cancels 17 queued/active voices to zero; muted effects schedule no voices; a new SoundBank reads the stored mute preference; and mute sets master gain to zero. Source syntax passes `node --check`. This is scheduling/lifecycle verification, not a listening verdict.
+`npm run test:soundtrack` checks exact asset bytes/hash, decoded duration, audio
+output, pause/resume, mute/volume, new-run reset, level continuation, the actual
+end-to-intro loop, pagehide, interrupted play recovery, and the downloaded file
+with networking disabled. Live Pages verification confirms exact artifact bytes
+and that the full embedded song starts and pauses on the published phone page.
+These checks verify browser behavior, not subjective speaker balance on Samsung.
+The full stereo song is also rendered through both the former and current output
+paths to measure the increase in RMS level and check every sample for clipping.
+Concurrent control, hit, and completion effects are sampled through the live output.
+Build `karambe-soundtrack2` measures a 5.06 dB full-track RMS increase compared
+with the same song through the former gain/limiter settings. The maximum measured
+sample is .95, with zero samples at or beyond digital full scale.
+
+This card guards Hermes failure modes A–G and P–T through standalone/parity,
+network, lifecycle, audio-output, release, and deployment checks. Mobile layout
+and controls remain covered by their existing lanes; custom control editing is
+outside this card.

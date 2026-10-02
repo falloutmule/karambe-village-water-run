@@ -20,6 +20,7 @@ const bundled = await build({
   absWorkingDir: process.cwd(),
   define: { __BUILD_ID__: JSON.stringify(buildId) },
   bundle: true,
+  loader: { '.mp3': 'dataurl' },
   write: false,
   format: 'iife',
   target: 'es2020',

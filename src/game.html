@@ -315,6 +315,7 @@
   }
   #volumeSlider { width: 100%; height: 34px; margin: 0; accent-color: #ffd94e; touch-action: pan-x; }
   #volumeValue { color: #ffd94e; text-align: right; font-variant-numeric: tabular-nums; }
+  .panel .soundtrack-credit { margin: 7px 0 0; color: #bfe1c7; font-size: 11px; line-height: 1.35; }
   .level-select {
     margin: 12px 0 4px;
     padding: 10px;
@@ -419,6 +420,7 @@
     <button id="secondaryBtn" class="action secondary hidden">RESTART ROUND</button>
     <button id="soundBtn" class="action tertiary">SOUND: ON</button>
     <label class="sound-adjust" for="volumeSlider"><span>VOLUME</span><input id="volumeSlider" type="range" min="10" max="100" step="10" value="100" aria-label="Game volume"><output id="volumeValue" for="volumeSlider">100%</output></label>
+    <p class="soundtrack-credit">Soundtrack: Karambe Village — falloutmule</p>
     <a id="downloadBtn" class="action secondary" href="index.html" download="Karambe-Village-Water-Run.html">DOWNLOAD OFFLINE GAME</a>
     <button id="installBtn" class="action tertiary">ADD TO HOME SCREEN</button>
     <div id="offlineStatus" class="offline-status hidden">OFFLINE COPY — NO CONNECTION NEEDED</div>
@@ -426,6 +428,7 @@
 </div>
 <div id="gameStatus" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 <div id="rotateNote">Turn the phone upright to play Karambe Village Water Run.</div>
+<audio id="soundtrack" loop preload="none" aria-hidden="true"></audio>
 
 <!-- GAME_BUNDLE -->
 </body>
